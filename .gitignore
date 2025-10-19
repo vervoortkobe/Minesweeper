@@ -57,3 +57,4 @@ dkms.conf
 .idea/
 .vscode/
 /cmake-build-debug
+!SDL2.dll
