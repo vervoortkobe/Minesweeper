@@ -19,8 +19,6 @@ add_executable(minesweeper
         args.h
         filehandler.c
         filehandler.h
-        screenhandler.c
-        game.c
 )
 target_link_libraries(minesweeper ${SDL2_LIBRARIES})
 

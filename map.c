@@ -15,16 +15,12 @@ int map_mines = 10;
 
 char map[10][10];
 
-void add_mines() {
-    int placed = 0;
-    srand((unsigned int)time(NULL));
-    while (placed < map_mines) {
-        int x = rand() % map_w;
-        int y = rand() % map_h;
-        if (map[y][x] == '0') {
-            map[y][x] = 'M';
-            placed++;
-        }
+static int rng_seeded = 0;
+
+void seed_rng_if_needed() {
+    if (!rng_seeded) {
+        srand((unsigned int)time(NULL));
+        rng_seeded = 1;
     }
 }
 
@@ -53,8 +49,6 @@ void create_map() {
             map[y][x] ='0';
         }
     }
-    add_mines();
-    fill_numbers();
 }
 
 void export_map() {
@@ -80,8 +74,17 @@ void print_map() {
     }
 }
 
-void run_map() {
-    create_map();
-    print_map();
-    export_map();
+void add_mines_excluding(int exclude_x, int exclude_y) {
+    seed_rng_if_needed();
+    int placed = 0;
+    while (placed < map_mines) {
+        int x = rand() % map_w;
+        int y = rand() % map_h;
+        if (x == exclude_x && y == exclude_y) continue;
+        if (map[y][x] == '0') {
+            map[y][x] = 'M';
+            placed++;
+        }
+    }
+    fill_numbers();
 }

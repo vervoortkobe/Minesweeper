@@ -5,6 +5,7 @@
 #include <string.h>
 #include "map.h"
 #include <dirent.h>
+#include <stdbool.h>
 
 /*
  * Deze renderer wordt gebruikt om figuren in het venster te tekenen. De renderer
@@ -59,6 +60,11 @@ int should_continue = 1;
  * wanneer het spel ten einde komt.
  */
 static SDL_Window *window;
+
+// Game state for GUI: covered/uncovered/flagged
+static bool uncovered[10][10];
+static bool flagged[10][10];
+static bool mines_placed = false; // whether add_mines_excluding has been called
 
 /*
  * Controleert of het gegeven event "relevant" is voor dit spel.
@@ -134,9 +140,64 @@ void read_input() {
         if (clicked_row >= grid_rows) clicked_row = grid_rows - 1;
 
         if (event.button.button == SDL_BUTTON_RIGHT) {
-            printf("Right-click at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
+            // Toggle flag
+            flagged[clicked_row][clicked_col] = !flagged[clicked_row][clicked_col];
+            printf("Right-click at (%d,%d) -> cell (%d,%d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, flagged[clicked_row][clicked_col]);
         } else {
             printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
+            // On first left-click, ensure mines are placed excluding clicked cell
+            if (!mines_placed) {
+                add_mines_excluding(clicked_col, clicked_row);
+                // print the generated field to console for debugging/visibility
+                print_map();
+                // also export the generated map to field.txt
+                export_map();
+                mines_placed = true;
+            }
+            // If it's a mine and not flagged -> reveal mine (game over) but for now just uncover
+            if (map[clicked_row][clicked_col] == 'M') {
+                uncovered[clicked_row][clicked_col] = true;
+            } else if (map[clicked_row][clicked_col] == '0') {
+                // flood-fill uncover
+                // simple iterative stack-based flood-fill to avoid recursion
+                int stack_size = map_w * map_h;
+                int stack_x[1000];
+                int stack_y[1000];
+                int sp = 0;
+                // push
+                stack_x[sp] = clicked_col;
+                stack_y[sp] = clicked_row;
+                sp++;
+                while (sp > 0) {
+                    sp--;
+                    int cx = stack_x[sp];
+                    int cy = stack_y[sp];
+                    if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h) continue;
+                    if (uncovered[cy][cx]) continue;
+                    uncovered[cy][cx] = true;
+                    // if this cell is '0', add neighbors
+                    if (map[cy][cx] == '0') {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            for (int dx = -1; dx <= 1; dx++) {
+                                if (dx == 0 && dy == 0) continue;
+                                int nx = cx + dx;
+                                int ny = cy + dy;
+                                if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h) continue;
+                                if (!uncovered[ny][nx] && !flagged[ny][nx]) {
+                                    // push neighbor
+                                    stack_x[sp] = nx;
+                                    stack_y[sp] = ny;
+                                    sp++;
+                                    if (sp >= 1000) sp = 999; // safety
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // uncover a single number
+                uncovered[clicked_row][clicked_col] = true;
+            }
         }
         break;
     }
@@ -163,8 +224,39 @@ void draw_window() {
         for (int row = 0; row < grid_rows; ++row) {
             for (int col = 0; col < grid_cols; ++col) {
                 SDL_Rect rect = { col * cell_w, row * cell_h, cell_w, cell_h };
-                if (digit_covered_texture) {
-                    SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                if (uncovered[row][col]) {
+                    // show underlying cell
+                    char c = map[row][col];
+                    if (c == 'M') {
+                        SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
+                    } else if (c == '0') {
+                        SDL_RenderCopy(renderer, digit_0_texture, NULL, &rect);
+                    } else if (c == '1') {
+                        SDL_RenderCopy(renderer, digit_1_texture, NULL, &rect);
+                    } else if (c == '2') {
+                        SDL_RenderCopy(renderer, digit_2_texture, NULL, &rect);
+                    } else if (c == '3') {
+                        SDL_RenderCopy(renderer, digit_3_texture, NULL, &rect);
+                    } else if (c == '4') {
+                        SDL_RenderCopy(renderer, digit_4_texture, NULL, &rect);
+                    } else if (c == '5') {
+                        SDL_RenderCopy(renderer, digit_5_texture, NULL, &rect);
+                    } else if (c == '6') {
+                        SDL_RenderCopy(renderer, digit_6_texture, NULL, &rect);
+                    } else if (c == '7') {
+                        SDL_RenderCopy(renderer, digit_7_texture, NULL, &rect);
+                    } else if (c == '8') {
+                        SDL_RenderCopy(renderer, digit_8_texture, NULL, &rect);
+                    } else {
+                        // fallback
+                        SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                    }
+                } else {
+                    if (flagged[row][col] && digit_flagged_texture) {
+                        SDL_RenderCopy(renderer, digit_flagged_texture, NULL, &rect);
+                    } else if (digit_covered_texture) {
+                        SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                    }
                 }
             }
         }
@@ -305,7 +397,8 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[1], "-w") == 0 && strcmp(argv[3], "-h") == 0 && strcmp(argv[5], "-m") == 0) {
         return 1;
     }*/
-    run_map();
+    // Initialize the map without placing mines; mines will be placed on the first left-click
+    create_map();
     initialize_gui(WINDOW_WIDTH,WINDOW_HEIGHT);
     while (should_continue) {
         draw_window();
