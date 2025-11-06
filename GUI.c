@@ -58,6 +58,10 @@ static bool uncovered[10][10];
 static bool flagged[10][10];
 static bool mines_placed = false; // whether add_mines_excluding has been called
 static bool show_bombs = false; // toggled with key 'b'
+static bool game_lost = false;
+static int losing_x = -1;
+static int losing_y = -1;
+static uint32_t lose_start_time = 0;
 
 // Print the current visible view of the board to stdout:
 // '#' = covered, 'F' = flagged, numbers or 'M' for uncovered
@@ -122,6 +126,11 @@ void read_input() {
         }
     }
 
+    // If player already lost, ignore all inputs except quitting so blinking can continue
+    if (game_lost && event.type != SDL_QUIT) {
+        return;
+    }
+
     switch (event.type) {
     case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_p) {
@@ -162,6 +171,21 @@ void read_input() {
             printf("Right-click at (%d,%d) -> cell (%d,%d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, flagged[clicked_row][clicked_col]);
             // mark view changed so we print once after handling the event
             changed = true;
+            // check win: all mines flagged and no incorrect flags
+            int correct_flags = 0;
+            int total_flags = 0;
+            for (int y = 0; y < map_h; ++y) {
+                for (int x = 0; x < map_w; ++x) {
+                    if (flagged[y][x]) {
+                        total_flags++;
+                        if (map[y][x] == 'M') correct_flags++;
+                    }
+                }
+            }
+            if (total_flags == map_mines && correct_flags == map_mines) {
+                printf("All bombs flagged — you win!\n");
+                should_continue = 0; // close the game
+            }
         } else {
             printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed) {
@@ -172,8 +196,21 @@ void read_input() {
                 changed = true;
             }
             if (map[clicked_row][clicked_col] == 'M') {
-                if (!uncovered[clicked_row][clicked_col]) {
-                    uncovered[clicked_row][clicked_col] = true;
+                // player clicked a mine -> lose
+                if (!game_lost) {
+                    game_lost = true;
+                    losing_x = clicked_col;
+                    losing_y = clicked_row;
+                    lose_start_time = SDL_GetTicks();
+                    // reveal all mines
+                    for (int y = 0; y < map_h; ++y) {
+                        for (int x = 0; x < map_w; ++x) {
+                            if (map[y][x] == 'M') uncovered[y][x] = true;
+                        }
+                    }
+                    // ensure losing mine is uncovered
+                    uncovered[losing_y][losing_x] = true;
+                    printf("Boom! You clicked a mine at (%d,%d) — you lose.\n", losing_y, losing_x);
                     changed = true;
                 }
             } else if (map[clicked_row][clicked_col] == '0') {
@@ -257,7 +294,23 @@ void draw_window() {
                 if (uncovered[row][col]) {
                     char c = map[row][col];
                     if (c == 'M') {
-                        SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
+                        // If player lost and this is the losing mine, make it blink red every second
+                        if (game_lost && row == losing_y && col == losing_x) {
+                            uint32_t t = SDL_GetTicks();
+                            int visible = ((t / 1000) % 2) == 0; // blink every second
+                            if (visible) {
+                                    // tint red for the losing mine
+                                    SDL_SetTextureColorMod(digit_mine_texture, 255, 0, 0);
+                                    SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
+                                    // reset tint
+                                    SDL_SetTextureColorMod(digit_mine_texture, 255, 255, 255);
+                                } else {
+                                    // when not visible, draw the covered texture so the marker or previous frames are hidden
+                                    if (digit_covered_texture) SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                                }
+                        } else {
+                            SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
+                        }
                     } else if (c >= '0' && c <= '8') {
                         int idx = c - '0';
                         if (digit_textures[idx]) {
