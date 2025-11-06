@@ -14,15 +14,7 @@
 static SDL_Renderer *renderer;
 
 /* De afbeelding die een vakje met een "1" in voorstelt. */
-static SDL_Texture *digit_0_texture = NULL;
-static SDL_Texture *digit_1_texture = NULL;
-static SDL_Texture *digit_2_texture = NULL;
-static SDL_Texture *digit_3_texture = NULL;
-static SDL_Texture *digit_4_texture = NULL;
-static SDL_Texture *digit_5_texture = NULL;
-static SDL_Texture *digit_6_texture = NULL;
-static SDL_Texture *digit_7_texture = NULL;
-static SDL_Texture *digit_8_texture = NULL;
+static SDL_Texture *digit_textures[9] = { NULL };
 static SDL_Texture *digit_covered_texture = NULL;
 static SDL_Texture *digit_flagged_texture = NULL;
 static SDL_Texture *digit_mine_texture = NULL;
@@ -208,8 +200,10 @@ void draw_window() {
          * Dit is op de plaats waar de gebruiker het laatst geklikt heeft.
          */
         SDL_Rect rectangle = { mouse_x, mouse_y, IMAGE_WIDTH, IMAGE_HEIGHT };
-        /* Tekent de afbeelding op die plaats. */
-        SDL_RenderCopy(renderer, digit_1_texture, NULL, &rectangle);
+    /* Tekent de afbeelding op die plaats. */
+    // Use the '1' texture as marker for last click, fall back if not loaded
+    if (digit_textures[1]) SDL_RenderCopy(renderer, digit_textures[1], NULL, &rectangle);
+    else if (digit_covered_texture) SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rectangle);
 
         int grid_rows = 10, grid_cols = 10;
         int cell_w = WINDOW_WIDTH / grid_cols;
@@ -228,24 +222,13 @@ void draw_window() {
                     char c = map[row][col];
                     if (c == 'M') {
                         SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
-                    } else if (c == '0') {
-                        SDL_RenderCopy(renderer, digit_0_texture, NULL, &rect);
-                    } else if (c == '1') {
-                        SDL_RenderCopy(renderer, digit_1_texture, NULL, &rect);
-                    } else if (c == '2') {
-                        SDL_RenderCopy(renderer, digit_2_texture, NULL, &rect);
-                    } else if (c == '3') {
-                        SDL_RenderCopy(renderer, digit_3_texture, NULL, &rect);
-                    } else if (c == '4') {
-                        SDL_RenderCopy(renderer, digit_4_texture, NULL, &rect);
-                    } else if (c == '5') {
-                        SDL_RenderCopy(renderer, digit_5_texture, NULL, &rect);
-                    } else if (c == '6') {
-                        SDL_RenderCopy(renderer, digit_6_texture, NULL, &rect);
-                    } else if (c == '7') {
-                        SDL_RenderCopy(renderer, digit_7_texture, NULL, &rect);
-                    } else if (c == '8') {
-                        SDL_RenderCopy(renderer, digit_8_texture, NULL, &rect);
+                    } else if (c >= '0' && c <= '8') {
+                        int idx = c - '0';
+                        if (digit_textures[idx]) {
+                            SDL_RenderCopy(renderer, digit_textures[idx], NULL, &rect);
+                        } else {
+                            SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                        }
                     } else {
                         SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                     }
@@ -306,45 +289,29 @@ void initialize_textures() {
          * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
          * geeft SDL_LoadBMP een NULL-pointer terug.
          */
-        SDL_Surface *digit_0_surface = SDL_LoadBMP("Images/0.bmp");
-        SDL_Surface *digit_1_surface = SDL_LoadBMP("Images/1.bmp");
-        SDL_Surface *digit_2_surface = SDL_LoadBMP("Images/2.bmp");
-        SDL_Surface *digit_3_surface = SDL_LoadBMP("Images/3.bmp");
-        SDL_Surface *digit_4_surface = SDL_LoadBMP("Images/4.bmp");
-        SDL_Surface *digit_5_surface = SDL_LoadBMP("Images/5.bmp");
-        SDL_Surface *digit_6_surface = SDL_LoadBMP("Images/6.bmp");
-        SDL_Surface *digit_7_surface = SDL_LoadBMP("Images/7.bmp");
-        SDL_Surface *digit_8_surface = SDL_LoadBMP("Images/8.bmp");
+        const char *num_files[9] = {
+            "Images/0.bmp","Images/1.bmp","Images/2.bmp",
+            "Images/3.bmp","Images/4.bmp","Images/5.bmp",
+            "Images/6.bmp","Images/7.bmp","Images/8.bmp"
+        };
+        for (int i = 0; i < 9; ++i) {
+            SDL_Surface *s = SDL_LoadBMP(num_files[i]);
+            if (s) {
+                digit_textures[i] = SDL_CreateTextureFromSurface(renderer, s);
+                SDL_FreeSurface(s);
+            } else {
+                digit_textures[i] = NULL;
+            }
+        }
+
         SDL_Surface *digit_covered_surface = SDL_LoadBMP("Images/covered.bmp");
         SDL_Surface *digit_flagged_surface = SDL_LoadBMP("Images/flagged.bmp");
         SDL_Surface *digit_mine_surface = SDL_LoadBMP("Images/mine.bmp");
 
-        /*
-         * Zet deze afbeeldingen om naar een texture die getoond kunnen worden in het venster.
-         * Indien de textures niet konden omgezet worden, geeft de functie een NULL-pointer terug.
-         */
-        digit_0_texture = SDL_CreateTextureFromSurface(renderer, digit_0_surface);
-        digit_1_texture = SDL_CreateTextureFromSurface(renderer, digit_1_surface);
-        digit_2_texture = SDL_CreateTextureFromSurface(renderer, digit_2_surface);
-        digit_3_texture = SDL_CreateTextureFromSurface(renderer, digit_3_surface);
-        digit_4_texture = SDL_CreateTextureFromSurface(renderer, digit_4_surface);
-        digit_5_texture = SDL_CreateTextureFromSurface(renderer, digit_5_surface);
-        digit_6_texture = SDL_CreateTextureFromSurface(renderer, digit_6_surface);
-        digit_7_texture = SDL_CreateTextureFromSurface(renderer, digit_7_surface);
-        digit_8_texture = SDL_CreateTextureFromSurface(renderer, digit_8_surface);
         digit_covered_texture = SDL_CreateTextureFromSurface(renderer, digit_covered_surface);
         digit_flagged_texture = SDL_CreateTextureFromSurface(renderer, digit_flagged_surface);
         digit_mine_texture = SDL_CreateTextureFromSurface(renderer, digit_mine_surface);
         /* Dealloceer de tijdelijke SDL_Surfaces die werden aangemaakt. */
-        SDL_FreeSurface(digit_0_surface);
-        SDL_FreeSurface(digit_1_surface);
-        SDL_FreeSurface(digit_2_surface);
-        SDL_FreeSurface(digit_3_surface);
-        SDL_FreeSurface(digit_4_surface);
-        SDL_FreeSurface(digit_5_surface);
-        SDL_FreeSurface(digit_6_surface);
-        SDL_FreeSurface(digit_7_surface);
-        SDL_FreeSurface(digit_8_surface);
         SDL_FreeSurface(digit_covered_surface);
         SDL_FreeSurface(digit_flagged_surface);
         SDL_FreeSurface(digit_mine_surface);
@@ -366,15 +333,9 @@ void initialize_gui(int window_width, int window_height) {
  */
 void free_gui() {
     // Dealloceert de afbeeldingen.
-    SDL_DestroyTexture(digit_0_texture);
-    SDL_DestroyTexture(digit_1_texture);
-    SDL_DestroyTexture(digit_2_texture);
-    SDL_DestroyTexture(digit_3_texture);
-    SDL_DestroyTexture(digit_4_texture);
-    SDL_DestroyTexture(digit_5_texture);
-    SDL_DestroyTexture(digit_6_texture);
-    SDL_DestroyTexture(digit_7_texture);
-    SDL_DestroyTexture(digit_8_texture);
+    for (int i = 0; i < 9; ++i) {
+        if (digit_textures[i]) SDL_DestroyTexture(digit_textures[i]);
+    }
     SDL_DestroyTexture(digit_covered_texture);
     SDL_DestroyTexture(digit_flagged_texture);
     SDL_DestroyTexture(digit_mine_texture);
