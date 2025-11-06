@@ -62,6 +62,12 @@ static bool game_lost = false;
 static int losing_x = -1;
 static int losing_y = -1;
 static uint32_t lose_start_time = 0;
+static bool game_won = false;
+static bool removed_cells[10][10];
+static uint32_t win_start_time = 0;
+static uint32_t win_last_remove = 0;
+static int win_remaining = 0;
+static const uint32_t WIN_REMOVE_INTERVAL_MS = 30; // remove one box every 30ms (faster)
 
 // Print the current visible view of the board to stdout:
 // '#' = covered, 'F' = flagged, numbers or 'M' for uncovered
@@ -104,6 +110,9 @@ static int is_relevant_event(SDL_Event *event) {
 void read_input() {
     SDL_Event event;
     bool changed = false;
+    int grid_rows = 10, grid_cols = 10;
+    int cell_w = WINDOW_WIDTH / grid_cols;
+    int cell_h = WINDOW_HEIGHT / grid_rows;
 
     /*
      * Handelt alle input uit de GUI af.
@@ -126,8 +135,8 @@ void read_input() {
         }
     }
 
-    // If player already lost, ignore all inputs except quitting so blinking can continue
-    if (game_lost && event.type != SDL_QUIT) {
+    // If player already lost or won, ignore all inputs except quitting so animations can continue
+    if ((game_lost || game_won) && event.type != SDL_QUIT) {
         return;
     }
 
@@ -184,7 +193,20 @@ void read_input() {
             }
             if (total_flags == map_mines && correct_flags == map_mines) {
                 printf("All bombs flagged — you win!\n");
-                should_continue = 0; // close the game
+                // start win animation instead of immediately closing
+                game_won = true;
+                win_start_time = SDL_GetTicks();
+                win_last_remove = win_start_time;
+                // initialize removed map and remaining count
+                win_remaining = map_w * map_h;
+                for (int y = 0; y < map_h; ++y) {
+                    for (int x = 0; x < map_w; ++x) {
+                        removed_cells[y][x] = false;
+                    }
+                }
+                // seed rand for the removal ordering
+                srand((unsigned int)SDL_GetTicks());
+                changed = true;
             }
         } else {
             printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
@@ -257,86 +279,120 @@ void read_input() {
         }
         break;
     }
-    if (changed) {
-        print_view();
+
+        return;
     }
-}
 
 void draw_window() {
-        /*
-         * Maakt het venster blanco.
-         */
-        SDL_RenderClear(renderer);
+    // Draw a translucent marker on the cell under the mouse (only when not in end-state)
+    int grid_rows = 10, grid_cols = 10;
+    int cell_w = WINDOW_WIDTH / grid_cols;
+    int cell_h = WINDOW_HEIGHT / grid_rows;
 
-        /*
-         * Bereken de plaats (t.t.z., de rechthoek) waar een afbeelding moet getekend worden.
-         * Dit is op de plaats waar de gebruiker het laatst geklikt heeft.
-         */
-        SDL_Rect rectangle = { mouse_x, mouse_y, IMAGE_WIDTH, IMAGE_HEIGHT };
-    /* Tekent de afbeelding op die plaats. */
-    // Use the '1' texture as marker for last click, fall back if not loaded
-    if (digit_textures[1]) SDL_RenderCopy(renderer, digit_textures[1], NULL, &rectangle);
-    else if (digit_covered_texture) SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rectangle);
+    // Clear background
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
 
-        int grid_rows = 10, grid_cols = 10;
-        int cell_w = WINDOW_WIDTH / grid_cols;
-        int cell_h = WINDOW_HEIGHT / grid_rows;
+    if (!game_won && !game_lost) {
+        int marker_col = mouse_x / cell_w;
+        int marker_row = mouse_y / cell_h;
+        if (marker_col >= 0 && marker_col < grid_cols && marker_row >= 0 && marker_row < grid_rows) {
+            SDL_Rect marker_rect = { marker_col * cell_w, marker_row * cell_h, cell_w, cell_h };
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 100);
+            SDL_RenderFillRect(renderer, &marker_rect);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        }
+    }
 
-        for (int row = 0; row < grid_rows; ++row) {
-            for (int col = 0; col < grid_cols; ++col) {
-                SDL_Rect rect = { col * cell_w, row * cell_h, cell_w, cell_h };
-                // If user asked to show bombs, draw them regardless of uncovered state
-                if (show_bombs && map[row][col] == 'M') {
-                    SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
-                    continue;
-                }
+    for (int row = 0; row < grid_rows; ++row) {
+        for (int col = 0; col < grid_cols; ++col) {
+            SDL_Rect rect = { col * cell_w, row * cell_h, cell_w, cell_h };
+            // During win animation, removed cells disappear; otherwise render normally
+            if (game_won && removed_cells[row][col]) {
+                continue; // disappeared
+            }
 
-                if (uncovered[row][col]) {
-                    char c = map[row][col];
-                    if (c == 'M') {
-                        // If player lost and this is the losing mine, make it blink red every second
-                        if (game_lost && row == losing_y && col == losing_x) {
-                            uint32_t t = SDL_GetTicks();
-                            int visible = ((t / 1000) % 2) == 0; // blink every second
-                            if (visible) {
-                                    // tint red for the losing mine
-                                    SDL_SetTextureColorMod(digit_mine_texture, 255, 0, 0);
-                                    SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
-                                    // reset tint
-                                    SDL_SetTextureColorMod(digit_mine_texture, 255, 255, 255);
-                                } else {
-                                    // when not visible, draw the covered texture so the marker or previous frames are hidden
-                                    if (digit_covered_texture) SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
-                                }
-                        } else {
+            // If user asked to show bombs, draw them regardless of uncovered state
+            if (show_bombs && map[row][col] == 'M') {
+                // if win animation is active and cell has been removed, skip drawing
+                if (game_won && removed_cells[row][col]) continue;
+                SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
+                continue;
+            }
+
+            if (uncovered[row][col]) {
+                char c = map[row][col];
+                if (c == 'M') {
+                    // If player lost and this is the losing mine, make it blink red every second
+                    if (game_lost && row == losing_y && col == losing_x) {
+                        uint32_t t = SDL_GetTicks();
+                        uint32_t elapsed = t - lose_start_time;
+                        int visible = ((elapsed / 1000) % 2) == 0; // blink every second relative to loss time
+                        if (visible) {
+                            // tint red for the losing mine
+                            SDL_SetTextureColorMod(digit_mine_texture, 255, 0, 0);
                             SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
-                        }
-                    } else if (c >= '0' && c <= '8') {
-                        int idx = c - '0';
-                        if (digit_textures[idx]) {
-                            SDL_RenderCopy(renderer, digit_textures[idx], NULL, &rect);
+                            // reset tint
+                            SDL_SetTextureColorMod(digit_mine_texture, 255, 255, 255);
                         } else {
-                            SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                            // when not visible, draw the covered texture so the marker or previous frames are hidden
+                            if (digit_covered_texture) SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                         }
+                    } else {
+                        SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
+                    }
+                } else if (c >= '0' && c <= '8') {
+                    int idx = c - '0';
+                    if (digit_textures[idx]) {
+                        SDL_RenderCopy(renderer, digit_textures[idx], NULL, &rect);
                     } else {
                         SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                     }
                 } else {
-                    if (flagged[row][col] && digit_flagged_texture) {
-                        SDL_RenderCopy(renderer, digit_flagged_texture, NULL, &rect);
-                    } else if (digit_covered_texture) {
-                        SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
-                    }
+                    SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
+                }
+            } else {
+                if (flagged[row][col] && digit_flagged_texture) {
+                    SDL_RenderCopy(renderer, digit_flagged_texture, NULL, &rect);
+                } else if (digit_covered_texture) {
+                    SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                 }
             }
         }
+    }
+
+    // If win animation running, remove a random non-removed cell periodically
+    if (game_won && win_remaining > 0) {
+        uint32_t now = SDL_GetTicks();
+        if (now - win_last_remove >= WIN_REMOVE_INTERVAL_MS) {
+            // pick a random remaining cell
+            int tries = 0;
+            while (tries < 1000 && win_remaining > 0) {
+                int rx = rand() % map_w;
+                int ry = rand() % map_h;
+                if (!removed_cells[ry][rx]) {
+                    removed_cells[ry][rx] = true;
+                    win_remaining--;
+                    break;
+                }
+                tries++;
+            }
+            win_last_remove = now;
+        }
+        // when all removed, close the game
+        if (win_remaining <= 0) {
+            should_continue = 0;
+        }
+    }
 
     /*
      * De volgende lijn moet zeker uitgevoerd worden op het einde van de functie.
      * Wanneer aan de renderer gevraagd wordt om iets te tekenen, wordt het venster pas aangepast
      * wanneer de SDL_RenderPresent-functie wordt aangeroepen.
      */
-        SDL_RenderPresent(renderer);
+    SDL_RenderPresent(renderer);
 }
 
 /*
