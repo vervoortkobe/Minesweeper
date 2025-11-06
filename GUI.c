@@ -59,6 +59,25 @@ static bool flagged[10][10];
 static bool mines_placed = false; // whether add_mines_excluding has been called
 static bool show_bombs = false; // toggled with key 'b'
 
+// Print the current visible view of the board to stdout:
+// '#' = covered, 'F' = flagged, numbers or 'M' for uncovered
+static void print_view() {
+    for (int y = 0; y < map_h; ++y) {
+        for (int x = 0; x < map_w; ++x) {
+            if (uncovered[y][x]) {
+                putchar(map[y][x]);
+            } else if (flagged[y][x]) {
+                putchar('F');
+            } else {
+                putchar('#');
+            }
+            putchar(' ');
+        }
+        putchar('\n');
+    }
+    putchar('\n');
+}
+
 /*
  * Controleert of het gegeven event "relevant" is voor dit spel.
  * We gebruiken in deze GUI enkel muiskliks, toetsdrukken, en de "Quit"
@@ -80,6 +99,7 @@ static int is_relevant_event(SDL_Event *event) {
  */
 void read_input() {
     SDL_Event event;
+    bool changed = false;
 
     /*
      * Handelt alle input uit de GUI af.
@@ -109,6 +129,8 @@ void read_input() {
         } else if (event.key.keysym.sym == SDLK_b) {
             show_bombs = !show_bombs;
             printf("Toggle show bombs: %d\n", show_bombs);
+            // mark view changed so we print once after handling the event
+            changed = true;
         }
         break;
     case SDL_QUIT:
@@ -138,6 +160,8 @@ void read_input() {
         if (event.button.button == SDL_BUTTON_RIGHT) {
             flagged[clicked_row][clicked_col] = !flagged[clicked_row][clicked_col];
             printf("Right-click at (%d,%d) -> cell (%d,%d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, flagged[clicked_row][clicked_col]);
+            // mark view changed so we print once after handling the event
+            changed = true;
         } else {
             printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed) {
@@ -145,9 +169,13 @@ void read_input() {
                 print_map();
                 export_map();
                 mines_placed = true;
+                changed = true;
             }
             if (map[clicked_row][clicked_col] == 'M') {
-                uncovered[clicked_row][clicked_col] = true;
+                if (!uncovered[clicked_row][clicked_col]) {
+                    uncovered[clicked_row][clicked_col] = true;
+                    changed = true;
+                }
             } else if (map[clicked_row][clicked_col] == '0') {
                 int stack_size = map_w * map_h;
                 int stack_x[1000];
@@ -164,6 +192,7 @@ void read_input() {
                     if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h) continue;
                     if (uncovered[cy][cx]) continue;
                     uncovered[cy][cx] = true;
+                    changed = true;
                     if (map[cy][cx] == '0') {
                         for (int dy = -1; dy <= 1; dy++) {
                             for (int dx = -1; dx <= 1; dx++) {
@@ -182,10 +211,17 @@ void read_input() {
                     }
                 }
             } else {
-                uncovered[clicked_row][clicked_col] = true;
+                if (!uncovered[clicked_row][clicked_col]) {
+                    uncovered[clicked_row][clicked_col] = true;
+                    changed = true;
+                }
             }
+            /* view changes are tracked while handling the click; print once below if changed */
         }
         break;
+    }
+    if (changed) {
+        print_view();
     }
 }
 
