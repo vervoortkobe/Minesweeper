@@ -104,6 +104,10 @@ static int is_relevant_event(SDL_Event *event) {
            (event->type == SDL_QUIT);
 }
 
+// forward declaration so read_input can call it
+static void save_field_with_increment(void);
+
+
 /*
  * Vangt de input uit de GUI op. Deze functie is al deels geïmplementeerd, maar je moet die
  * zelf nog afwerken.
@@ -174,6 +178,9 @@ void read_input() {
             printf("Toggle show bombs: %d\n", show_bombs);
             // mark view changed so we print once after handling the event
             changed = true;
+        } else if (event.key.keysym.sym == SDLK_s) {
+            // Save the current generated field to an incrementally numbered file
+            save_field_with_increment();
         }
         break;
     case SDL_QUIT:
@@ -540,3 +547,41 @@ int main(int argc, char *argv[]) {
     free_gui();
     return 0;
 }
+
+// Save current map to an incrementally numbered file: field_<width>x<height>_<n>.txt
+static void save_field_with_increment() {
+    char filename[256];
+    int n = 1;
+    while (1) {
+        snprintf(filename, sizeof(filename), "field_%dx%d_%d.txt", map_w, map_h, n);
+        FILE *f = fopen(filename, "r");
+        if (f) {
+            fclose(f);
+            n++;
+            continue;
+        }
+        break;
+    }
+
+    // build map content
+    char buffer[4096];
+    int pos = 0;
+    for (int y = 0; y < map_h; ++y) {
+        for (int x = 0; x < map_w; ++x) {
+            pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c ", map[y][x]);
+        }
+        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "\n");
+    }
+
+    FILE *out = fopen(filename, "w");
+    if (out) {
+        fputs(buffer, out);
+        fclose(out);
+        printf("Saved field to %s\n", filename);
+    } else {
+        perror("Error saving field file");
+    }
+}
+
+// forward declaration for save helper used in read_input
+static void save_field_with_increment(void);
