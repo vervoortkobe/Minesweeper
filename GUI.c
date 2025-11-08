@@ -77,7 +77,7 @@ static void print_view() {
     for (int y = 0; y < map_h; ++y) {
         for (int x = 0; x < map_w; ++x) {
             if (uncovered[y][x]) {
-                putchar(map[y][x]);
+                putchar(MAP(y,x));
             } else if (flagged[y][x]) {
                 putchar('F');
             } else {
@@ -219,7 +219,7 @@ void read_input() {
                 for (int x = 0; x < map_w; ++x) {
                     if (flagged[y][x]) {
                         total_flags++;
-                        if (map[y][x] == 'M') correct_flags++;
+                        if (MAP(y,x) == 'M') correct_flags++;
                     }
                 }
             }
@@ -249,7 +249,7 @@ void read_input() {
                 mines_placed = true;
                 changed = true;
             }
-            if (map[clicked_row][clicked_col] == 'M') {
+            if (MAP(clicked_row,clicked_col) == 'M') {
                 // player clicked a mine -> lose
                 if (!game_lost) {
                     game_lost = true;
@@ -259,7 +259,7 @@ void read_input() {
                     // reveal all mines
                     for (int y = 0; y < map_h; ++y) {
                         for (int x = 0; x < map_w; ++x) {
-                            if (map[y][x] == 'M') uncovered[y][x] = true;
+                            if (MAP(y,x) == 'M') uncovered[y][x] = true;
                         }
                     }
                     // ensure losing mine is uncovered
@@ -267,7 +267,7 @@ void read_input() {
                     printf("Boom! You clicked a mine at (%d,%d) — you lose.\n", losing_y, losing_x);
                     changed = true;
                 }
-            } else if (map[clicked_row][clicked_col] == '0') {
+            } else if (MAP(clicked_row,clicked_col) == '0') {
                 int stack_size = map_w * map_h;
                 int stack_x[1000];
                 int stack_y[1000];
@@ -284,7 +284,7 @@ void read_input() {
                     if (uncovered[cy][cx]) continue;
                     uncovered[cy][cx] = true;
                     changed = true;
-                    if (map[cy][cx] == '0') {
+                    if (MAP(cy,cx) == '0') {
                         for (int dy = -1; dy <= 1; dy++) {
                             for (int dx = -1; dx <= 1; dx++) {
                                 if (dx == 0 && dy == 0) continue;
@@ -351,7 +351,7 @@ void draw_window() {
             }
 
             // If user asked to show bombs, draw them regardless of uncovered state
-            if (show_bombs && map[row][col] == 'M') {
+            if (show_bombs && MAP(row,col) == 'M') {
                 // if win animation is active and cell has been removed, skip drawing
                 if (game_won && removed_cells[row][col]) continue;
                 SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
@@ -359,7 +359,7 @@ void draw_window() {
             }
 
             if (uncovered[row][col]) {
-                char c = map[row][col];
+                char c = MAP(row,col);
                 if (c == 'M') {
                     // If player lost and this is the losing mine, make it blink red every second
                     if (game_lost && row == losing_y && col == losing_x) {
@@ -568,7 +568,7 @@ static void save_field_with_increment() {
     int pos = 0;
     for (int y = 0; y < map_h; ++y) {
         for (int x = 0; x < map_w; ++x) {
-            pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c ", map[y][x]);
+            pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c ", MAP(y,x));
         }
         pos += snprintf(buffer + pos, sizeof(buffer) - pos, "\n");
     }
