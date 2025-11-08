@@ -68,6 +68,8 @@ static uint32_t win_start_time = 0;
 static uint32_t win_last_remove = 0;
 static int win_remaining = 0;
 static const uint32_t WIN_REMOVE_INTERVAL_MS = 30; // remove one box every 30ms (faster)
+static bool show_all = false; // toggled with key 'p'
+static bool saved_uncovered[10][10];
 
 // Print the current visible view of the board to stdout:
 // '#' = covered, 'F' = flagged, numbers or 'M' for uncovered
@@ -143,7 +145,30 @@ void read_input() {
     switch (event.type) {
     case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_p) {
-            printf("P pressed\n");
+            // Toggle reveal-all on the board (temporary reveal)
+            show_all = !show_all;
+            if (show_all) {
+                // save previous uncovered state
+                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) saved_uncovered[y][x] = uncovered[y][x];
+                if (!mines_placed) {
+                    // place mines without excluding any specific cell
+                    add_mines_excluding(-1, -1);
+                    print_map();
+                    export_map();
+                    mines_placed = true;
+                }
+                for (int y = 0; y < map_h; ++y) {
+                    for (int x = 0; x < map_w; ++x) {
+                        uncovered[y][x] = true;
+                    }
+                }
+                printf("Show-all enabled (P pressed)\n");
+            } else {
+                // restore previous uncovered state
+                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) uncovered[y][x] = saved_uncovered[y][x];
+                printf("Show-all disabled (P pressed)\n");
+            }
+            changed = true;
         } else if (event.key.keysym.sym == SDLK_b) {
             show_bombs = !show_bombs;
             printf("Toggle show bombs: %d\n", show_bombs);
@@ -280,8 +305,12 @@ void read_input() {
         break;
     }
 
-        return;
+    if (changed) {
+        print_view();
     }
+
+    return;
+}
 
 void draw_window() {
     // Draw a translucent marker on the cell under the mouse (only when not in end-state)
