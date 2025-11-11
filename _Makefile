@@ -1,0 +1,17 @@
+all: GUI.c main.c map.c args.c filehandler.c GUI.h map.h args.h filehandler.h
+	gcc GUI.c main.c map.c args.c filehandler.c -o minesweeper
+
+GUI.o: GUI.c GUI.h
+	gcc -c GUI.c -o GUI.o
+
+main.o: main.c GUI.h args.h map.h
+	gcc -c main.c -o main.o
+
+map.o: map.c map.h
+	gcc -c map.c -o map.o
+
+args.o: args.c args.h
+	gcc -c args.c -o args.o
+
+filehandler.o: filehandler.c filehandler.h
+	gcc -c filehandler.c -o filehandler.o

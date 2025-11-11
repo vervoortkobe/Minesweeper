@@ -1,6 +1,9 @@
 SDL_INCLUDE ?= C:/Users/$(USERNAME)/scoop/apps/sdl2/current/include
 
-all: GUI.o main.o map.o args.o filehandler.o
+all: GUI.c main.c map.c args.c filehandler.c GUI.h map.h args.h filehandler.h
+	gcc -g -I"$(SDL_INCLUDE)" GUI.c main.c map.c args.c filehandler.c -o minesweeper.exe $(SDL_LIBS)
+
+out: GUI.o main.o map.o args.o filehandler.o
 	gcc GUI.o main.o map.o args.o filehandler.o -o minesweeper.exe $(SDL_LIBS)
 
 SDL_LIBS ?= C:/Users/$(USERNAME)/scoop/apps/sdl2/current/lib/SDL2main.lib C:/Users/$(USERNAME)/scoop/apps/sdl2/current/lib/SDL2.lib
