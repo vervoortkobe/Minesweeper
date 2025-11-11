@@ -189,7 +189,6 @@ void read_input() {
                     // place mines without excluding any specific cell
                     add_mines_excluding(-1, -1);
                     print_map();
-                    export_map();
                     mines_placed = true;
                 }
                 for (int y = 0; y < map_h; ++y) {
@@ -276,7 +275,6 @@ void read_input() {
             if (!mines_placed) {
                 add_mines_excluding(clicked_col, clicked_row);
                 print_map();
-                export_map();
                 mines_placed = true;
                 changed = true;
             }

@@ -7,7 +7,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "filehandler.h"
 #include "map.h"
 
 int map_w = 10;
@@ -51,19 +50,6 @@ void create_map() {
             MAP(y,x) ='0';
         }
     }
-}
-
-void export_map() {
-    char buffer[map_w * map_h * 2 + map_h + 1];
-    memset(buffer, 0, sizeof(buffer));
-    int pos = 0;
-    for (int y = 0; y < map_h; y++) {
-        for (int x = 0; x < map_w; x++) {
-            pos += snprintf(buffer + pos, sizeof(buffer) - pos, "%c ", MAP(y,x));
-        }
-        pos += snprintf(buffer + pos, sizeof(buffer) - pos, "\n");
-    }
-    writeFile("field.txt", buffer);
 }
 
 
