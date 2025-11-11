@@ -29,4 +29,15 @@ void free_gui();
 void draw_window();
 void read_input();
 
+/* Expose a small set of GUI-state helpers for the program entry point */
+/* Allocate/free the uncovered/flagged/profile buffers sized to the current map_w/map_h */
+int alloc_state_buffers(void);
+void free_state_buffers(void);
+
+/* When the program loop is driven from another file, allow main to know when to stop */
+extern int should_continue;
+
+/* Allow loading a saved field (implemented in GUI.c) from main.c */
+int load_game_file(const char *filename);
+
 #endif //MINESWEEPER_GUI_H

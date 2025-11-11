@@ -79,7 +79,7 @@ static bool *saved_uncovered = NULL;
 #define REMOVED(r,c) (removed_cells[(r) * map_w + (c)])
 #define SAVEDUNC(r,c) (saved_uncovered[(r) * map_w + (c)])
 
-static int alloc_state_buffers(void) {
+int alloc_state_buffers(void) {
     size_t cells = (size_t)map_w * (size_t)map_h;
     // free existing
     if (uncovered) free(uncovered);
@@ -94,7 +94,7 @@ static int alloc_state_buffers(void) {
     return 0;
 }
 
-static void free_state_buffers(void) {
+void free_state_buffers(void) {
     if (uncovered) { free(uncovered); uncovered = NULL; }
     if (flagged) { free(flagged); flagged = NULL; }
     if (removed_cells) { free(removed_cells); removed_cells = NULL; }
@@ -136,8 +136,6 @@ static int is_relevant_event(SDL_Event *event) {
 
 // forward declaration so read_input can call it
 static void save_field_with_increment(void);
-// forward declaration for loader that restores playing state
-static int load_game_file(const char *filename);
 
 
 /*
@@ -559,55 +557,7 @@ void free_gui() {
     SDL_Quit();
 }
 
-int main(int argc, char *argv[]) {
-    /* Command-line modes supported:
-     * -f <file>         Load saved map from file and continue
-     * -w <width> -h <height> -m <mines>
-     *                   Create a new map with given width/height/mines (flags may appear in any order)
-     */
-    /* parse CLI args via args.c */
-    CLIArgs cli;
-    if (parse_cli_args(argc, argv, &cli) != 0) {
-        fprintf(stderr, "%s\n", cli.error_msg);
-        return 1;
-    }
-
-    if (cli.load_file) {
-        if (load_game_file(cli.load_file) != 0) {
-            fprintf(stderr, "Failed to load map from %s\n", cli.load_file);
-            return 1;
-        }
-    } else if (cli.w > 0 && cli.h > 0 && cli.m >= 0) {
-        if (init_map(cli.w, cli.h, cli.m) != 0) {
-            fprintf(stderr, "Failed to initialize map %dx%d\n", cli.w, cli.h);
-            return 1;
-        }
-        create_map();
-        /* allocate GUI state buffers for the requested dimensions */
-        if (alloc_state_buffers() != 0) {
-            fprintf(stderr, "Failed to allocate GUI state buffers\n");
-            return 1;
-        }
-    } else {
-        // default
-        create_map();
-        /* ensure state buffers exist for the default map */
-        if (alloc_state_buffers() != 0) {
-            fprintf(stderr, "Failed to allocate GUI state buffers\n");
-            return 1;
-        }
-    }
-
-    initialize_gui(WINDOW_WIDTH,WINDOW_HEIGHT);
-    while (should_continue) {
-        draw_window();
-        read_input();
-    }
-    // Dealloceer al het geheugen dat werd aangemaakt door SDL zelf.
-    free_gui();
-    free_map();
-    return 0;
-}
+/* main moved to main.c - GUI implements drawing/input/state helpers only */
 
 // Save current map to an incrementally numbered file: field_<width>x<height>_<n>.txt
 static void save_field_with_increment() {
@@ -651,14 +601,12 @@ static void save_field_with_increment() {
 
 // forward declaration for save helper used in read_input
 static void save_field_with_increment(void);
-// forward declaration for loader that restores playing state
-static int load_game_file(const char *filename);
 
 // Load a game file which may contain an optional state block separated by a blank line.
 // Format supported:
 //  - map only: rows of tokens (M/0..8) separated by spaces
 //  - map + state: same as above, then a blank line, then rows of state tokens per cell: U=uncovered, F=flagged, #=covered
-static int load_game_file(const char *filename) {
+int load_game_file(const char *filename) {
     char **lines = NULL;
     int rows = 0;
     if (fh_read_lines(filename, &lines, &rows) != 0) return -1;
