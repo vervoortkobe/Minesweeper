@@ -23,5 +23,3 @@ add_executable(minesweeper
         filehandler.h
 )
 target_link_libraries(minesweeper ${SDL2_LIBRARIES})
-
-# gcc GUI.c map.h map.c filehandler.c filehandler.h -IC:/Users/vervo/scoop/apps/sdl2/current/include C:/Users/vervo/scoop/apps/sdl2/current/lib/SDL2main.lib C:/Users/vervo/scoop/apps/sdl2/current/lib/SDL2.lib -o minesweeper.exe
