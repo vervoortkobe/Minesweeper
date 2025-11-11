@@ -6,6 +6,7 @@
 #include "map.h"
 #include <dirent.h>
 #include <stdbool.h>
+#include "args.h"
 
 /*
  * Deze renderer wordt gebruikt om figuren in het venster te tekenen. De renderer
@@ -565,52 +566,21 @@ int main(int argc, char *argv[]) {
      * -w <width> -h <height> -m <mines>
      *                   Create a new map with given width/height/mines (flags may appear in any order)
      */
-    const char *load_file = NULL;
-    int w = -1, h = -1, m = -1;
-
-    for (int i = 1; i < argc; ++i) {
-        char *arg = argv[i];
-        if (arg[0] != '-') {
-            fprintf(stderr, "Unknown argument: %s\n", arg);
-            return 1;
-        }
-        switch (arg[1]) {
-            case 'f':
-                if (strcmp(arg, "-f") != 0) { fprintf(stderr, "Unknown argument: %s\n", arg); return 1; }
-                if (i + 1 < argc) { load_file = argv[++i]; } else { fprintf(stderr, "Missing filename after -f\n"); return 1; }
-                break;
-            case 'w':
-                if (strcmp(arg, "-w") != 0) { fprintf(stderr, "Unknown argument: %s\n", arg); return 1; }
-                if (i + 1 < argc) { w = atoi(argv[++i]); } else { fprintf(stderr, "Missing width after -w\n"); return 1; }
-                break;
-            case 'h':
-                if (strcmp(arg, "-h") != 0) { fprintf(stderr, "Unknown argument: %s\n", arg); return 1; }
-                if (i + 1 < argc) { h = atoi(argv[++i]); } else { fprintf(stderr, "Missing height after -h\n"); return 1; }
-                break;
-            case 'm':
-                if (strcmp(arg, "-m") != 0) { fprintf(stderr, "Unknown argument: %s\n", arg); return 1; }
-                if (i + 1 < argc) { m = atoi(argv[++i]); } else { fprintf(stderr, "Missing mines after -m\n"); return 1; }
-                break;
-            default:
-                fprintf(stderr, "Unknown argument: %s\n", arg);
-                return 1;
-        }
-    }
-
-    /* disallow combining -f with new-map flags */
-    if (load_file && (w != -1 || h != -1 || m != -1)) {
-        fprintf(stderr, "Cannot combine -f with -w/-h/-m options\n");
+    /* parse CLI args via args.c */
+    CLIArgs cli;
+    if (parse_cli_args(argc, argv, &cli) != 0) {
+        fprintf(stderr, "%s\n", cli.error_msg);
         return 1;
     }
 
-    if (load_file) {
-        if (load_game_file(load_file) != 0) {
-            fprintf(stderr, "Failed to load map from %s\n", load_file);
+    if (cli.load_file) {
+        if (load_game_file(cli.load_file) != 0) {
+            fprintf(stderr, "Failed to load map from %s\n", cli.load_file);
             return 1;
         }
-    } else if (w > 0 && h > 0 && m >= 0) {
-        if (init_map(w, h, m) != 0) {
-            fprintf(stderr, "Failed to initialize map %dx%d\n", w, h);
+    } else if (cli.w > 0 && cli.h > 0 && cli.m >= 0) {
+        if (init_map(cli.w, cli.h, cli.m) != 0) {
+            fprintf(stderr, "Failed to initialize map %dx%d\n", cli.w, cli.h);
             return 1;
         }
         create_map();
