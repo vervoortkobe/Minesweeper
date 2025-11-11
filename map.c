@@ -15,15 +15,6 @@ int map_mines = 10;
 
 char *map = NULL; /* linear buffer map_h * map_w */
 
-static int rng_seeded = 0;
-
-void seed_rng_if_needed() {
-    if (!rng_seeded) {
-        srand((unsigned int)time(NULL));
-        rng_seeded = 1;
-    }
-}
-
 void fill_numbers() {
     for (int y = 0; y < map_h; y++) {
         for (int x = 0; x < map_w; x++) {
@@ -63,7 +54,7 @@ void print_map() {
 }
 
 void add_mines_excluding(int exclude_x, int exclude_y) {
-    seed_rng_if_needed();
+    
     int placed = 0;
     while (placed < map_mines) {
         int x = rand() % map_w;

@@ -17,6 +17,8 @@ add_executable(minesweeper
         map.h
         args.c
         args.h
+        filehandler.c
+        filehandler.h
 )
 target_link_libraries(minesweeper ${SDL2_LIBRARIES})
 

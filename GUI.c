@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 #include "args.h"
+#include "filehandler.h"
 
 /*
  * Deze renderer wordt gebruikt om figuren in het venster te tekenen. De renderer
@@ -622,37 +623,30 @@ static void save_field_with_increment() {
         }
         break;
     }
-    /* Write a single file: field_<w>x<h>_<n>.txt
-     * Format: map tokens (rows), blank line, state tokens per cell: U=uncovered, F=flagged, #=covered
-     */
     char filenamebuf[256];
     snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
-
-    FILE *out = fopen(filenamebuf, "w");
-    if (!out) {
-        perror("Error creating save file");
+    /* build temporary flagged/uncovered arrays as unsigned char arrays for filehandler API */
+    size_t cells = (size_t)map_w * (size_t)map_h;
+    unsigned char *f_arr = (unsigned char*)malloc(cells);
+    unsigned char *u_arr = (unsigned char*)malloc(cells);
+    if (!f_arr || !u_arr) {
+        if (f_arr) free(f_arr);
+        if (u_arr) free(u_arr);
+        fprintf(stderr, "Out of memory while saving\n");
         return;
     }
-
-    for (int y = 0; y < map_h; ++y) {
-        for (int x = 0; x < map_w; ++x) {
-            fprintf(out, "%c ", MAP(y,x));
-        }
-        fprintf(out, "\n");
+    for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) {
+        int idx = y * map_w + x;
+        f_arr[idx] = FLAG(y,x) ? 1 : 0;
+        u_arr[idx] = UNC(y,x) ? 1 : 0;
     }
-    /* separator between map and state */
-    fprintf(out, "\n");
-    for (int y = 0; y < map_h; ++y) {
-        for (int x = 0; x < map_w; ++x) {
-            if (FLAG(y,x)) fprintf(out, "F ");
-            else if (UNC(y,x)) fprintf(out, "U ");
-            else fprintf(out, "# ");
-        }
-        fprintf(out, "\n");
+    if (fh_save_field_with_state(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
+        fprintf(stderr, "Error saving field to %s\n", filenamebuf);
+    } else {
+        printf("Saved field and play state to %s\n", filenamebuf);
     }
-
-    fclose(out);
-    printf("Saved field and play state to %s\n", filenamebuf);
+    free(f_arr);
+    free(u_arr);
 }
 
 // forward declaration for save helper used in read_input
@@ -665,72 +659,49 @@ static int load_game_file(const char *filename);
 //  - map only: rows of tokens (M/0..8) separated by spaces
 //  - map + state: same as above, then a blank line, then rows of state tokens per cell: U=uncovered, F=flagged, #=covered
 static int load_game_file(const char *filename) {
-    FILE *f = fopen(filename, "r");
-    if (!f) return -1;
-    char line[4096];
-    char *lines[4096];
+    char **lines = NULL;
     int rows = 0;
-    while (fgets(line, sizeof(line), f)) {
-        size_t len = strlen(line);
-        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) { line[--len] = '\0'; }
-        lines[rows] = strdup(line);
-        rows++;
-        if (rows >= 4096) break;
-    }
-    fclose(f);
-    if (rows == 0) return -1;
-    // find separator (first empty line)
+    if (fh_read_lines(filename, &lines, &rows) != 0) return -1;
+    if (rows == 0) { fh_free_lines(lines, rows); return -1; }
     int sep = -1;
-    for (int i = 0; i < rows; ++i) {
-        if (lines[i][0] == '\0') { sep = i; break; }
-    }
+    for (int i = 0; i < rows; ++i) if (lines[i][0] == '\0') { sep = i; break; }
     int map_rows = (sep == -1) ? rows : sep;
-    // determine columns by splitting first non-empty line
     int cols = 0;
     char *tmp = strdup(lines[0]);
     char *p = strtok(tmp, " \t");
     while (p) { cols++; p = strtok(NULL, " \t"); }
     free(tmp);
-    if (cols <= 0) goto fail;
-    if (init_map(cols, map_rows, 0) != 0) goto fail;
-    // fill map and count mines
+    if (cols <= 0) { fh_free_lines(lines, rows); return -1; }
+    if (init_map(cols, map_rows, 0) != 0) { fh_free_lines(lines, rows); return -1; }
     int mines = 0;
     for (int y = 0; y < map_rows; ++y) {
         int c = 0;
-        char *token = strtok(lines[y], " \t");
-        while (token && c < cols) {
-            MAP(y,c) = token[0];
+        char *tok = strtok(lines[y], " \t");
+        while (tok && c < cols) {
+            MAP(y,c) = tok[0];
             if (MAP(y,c) == 'M') mines++;
             c++;
-            token = strtok(NULL, " \t");
+            tok = strtok(NULL, " \t");
         }
     }
     map_mines = mines;
-    // allocate GUI state buffers
-    if (alloc_state_buffers() != 0) goto fail;
-    // default: all covered and unflagged
+    if (alloc_state_buffers() != 0) { fh_free_lines(lines, rows); free_map(); return -1; }
     for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(y,x) = false; FLAG(y,x) = false; }
-    // if there's a state block, parse it
     if (sep != -1) {
         int state_rows = rows - (sep + 1);
         int use_rows = state_rows < map_rows ? state_rows : map_rows;
         for (int y = 0; y < use_rows; ++y) {
             int c = 0;
-            char *token = strtok(lines[sep + 1 + y], " \t");
-            while (token && c < cols) {
-                if (token[0] == 'F') FLAG(y,c) = true;
-                else if (token[0] == 'U') UNC(y,c) = true;
-                else { /* covered */ }
+            char *tok = strtok(lines[sep + 1 + y], " \t");
+            while (tok && c < cols) {
+                if (tok[0] == 'F') FLAG(y,c) = true;
+                else if (tok[0] == 'U') UNC(y,c) = true;
                 c++;
-                token = strtok(NULL, " \t");
+                tok = strtok(NULL, " \t");
             }
         }
     }
-    // clean up lines
-    for (int i = 0; i < rows; ++i) if (lines[i]) free(lines[i]);
+    fh_free_lines(lines, rows);
     mines_placed = true;
     return 0;
-fail:
-    for (int i = 0; i < rows; ++i) if (lines[i]) free(lines[i]);
-    return -1;
 }
