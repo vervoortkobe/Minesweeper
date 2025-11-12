@@ -77,6 +77,7 @@ static bool *saved_uncovered = NULL;
 
 int alloc_state_buffers(void) {
     size_t cells = (size_t)map_w * (size_t)map_h;
+    // maak de state buffers leeg als ze al bestaan
     free_state_buffers();
     uncovered = (bool*)calloc(cells, sizeof(bool));
     flagged = (bool*)calloc(cells, sizeof(bool));
@@ -269,20 +270,20 @@ void read_input() {
                 changed = true;
             }
             if (MAP(clicked_row,clicked_col) == 'M') {
-                // player clicked a mine -> lose
+                // speler klikte op een mijn -> game over
                 if (!game_lost) {
                     game_lost = true;
                     losing_x = clicked_col;
                     losing_y = clicked_row;
                     lose_start_time = SDL_GetTicks();
-                    // reveal all mines
+                    // toon alle mijnen
                     for (int y = 0; y < map_h; ++y) {
                         for (int x = 0; x < map_w; ++x) {
                             if (MAP(y,x) == 'M') UNC(y,x) = true;
                         }
                     }
-                    // ensure losing mine is uncovered
-                    UNC(losing_y,losing_x) = true;
+                    // uncover ook de mijn waarop geklikt werd
+                    UNC(losing_y, losing_x) = true;
                     printf("Boom! You clicked a mine at (%d,%d) - you lose.\n", losing_y, losing_x);
                     changed = true;
                 }
@@ -326,7 +327,6 @@ void read_input() {
                     changed = true;
                 }
             }
-            /* view changes are tracked while handling the click; print once below if changed */
         }
         break;
     }
@@ -339,12 +339,10 @@ void read_input() {
 }
 
 void draw_window() {
-    // Draw a translucent marker on the cell under the mouse (only when not in end-state)
     int grid_rows = map_h, grid_cols = map_w;
     int cell_w = WINDOW_WIDTH / grid_cols;
     int cell_h = WINDOW_HEIGHT / grid_rows;
 
-    // Clear background
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
@@ -484,37 +482,38 @@ void initialize_window(const char *title, int window_width, int window_height) {
  * Laadt alle afbeeldingen die getoond moeten worden in.
  */
 void initialize_textures() {
-        /*
-         * Laadt de afbeeldingen in.
-         * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
-         * geeft SDL_LoadBMP een NULL-pointer terug.
-         */
-        const char *num_files[9] = {
-            "Images/0.bmp","Images/1.bmp","Images/2.bmp",
-            "Images/3.bmp","Images/4.bmp","Images/5.bmp",
-            "Images/6.bmp","Images/7.bmp","Images/8.bmp"
-        };
-        for (int i = 0; i < 9; ++i) {
-            SDL_Surface *s = SDL_LoadBMP(num_files[i]);
-            if (s) {
-                digit_textures[i] = SDL_CreateTextureFromSurface(renderer, s);
-                SDL_FreeSurface(s);
-            } else {
-                digit_textures[i] = NULL;
-            }
+    /*
+        * Laadt de afbeeldingen in.
+        * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
+        * geeft SDL_LoadBMP een NULL-pointer terug.
+        */
+    const char *num_files[9] = {
+        "Images/0.bmp","Images/1.bmp","Images/2.bmp",
+        "Images/3.bmp","Images/4.bmp","Images/5.bmp",
+        "Images/6.bmp","Images/7.bmp","Images/8.bmp"
+    };
+    for (int i = 0; i < 9; ++i) {
+        SDL_Surface *s = SDL_LoadBMP(num_files[i]);
+        if (s) {
+            digit_textures[i] = SDL_CreateTextureFromSurface(renderer, s);
+            SDL_FreeSurface(s);
+        } else {
+            digit_textures[i] = NULL;
         }
+    }
 
-        SDL_Surface *digit_covered_surface = SDL_LoadBMP("Images/covered.bmp");
-        SDL_Surface *digit_flagged_surface = SDL_LoadBMP("Images/flagged.bmp");
-        SDL_Surface *digit_mine_surface = SDL_LoadBMP("Images/mine.bmp");
+    SDL_Surface *digit_covered_surface = SDL_LoadBMP("Images/covered.bmp");
+    SDL_Surface *digit_flagged_surface = SDL_LoadBMP("Images/flagged.bmp");
+    SDL_Surface *digit_mine_surface = SDL_LoadBMP("Images/mine.bmp");
 
-        digit_covered_texture = SDL_CreateTextureFromSurface(renderer, digit_covered_surface);
-        digit_flagged_texture = SDL_CreateTextureFromSurface(renderer, digit_flagged_surface);
-        digit_mine_texture = SDL_CreateTextureFromSurface(renderer, digit_mine_surface);
-        /* Dealloceer de tijdelijke SDL_Surfaces die werden aangemaakt. */
-        SDL_FreeSurface(digit_covered_surface);
-        SDL_FreeSurface(digit_flagged_surface);
-        SDL_FreeSurface(digit_mine_surface);
+    digit_covered_texture = SDL_CreateTextureFromSurface(renderer, digit_covered_surface);
+    digit_flagged_texture = SDL_CreateTextureFromSurface(renderer, digit_flagged_surface);
+    digit_mine_texture = SDL_CreateTextureFromSurface(renderer, digit_mine_surface);
+    
+    /* Dealloceer de tijdelijke SDL_Surfaces die werden aangemaakt. */
+    SDL_FreeSurface(digit_covered_surface);
+    SDL_FreeSurface(digit_flagged_surface);
+    SDL_FreeSurface(digit_mine_surface);
 }
 
 /*

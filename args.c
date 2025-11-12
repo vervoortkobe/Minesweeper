@@ -12,6 +12,7 @@ int parse_cli_args(int argc, char *argv[], CLIArgs *out) {
 	out->error = 0;
 	out->error_msg[0] = '\0';
 
+	// CLI arguments: zie HOC Slides 3c_advanced.pdf, vanaf dia 4
 	for (int i = 1; i < argc; ++i) {
 		char *arg = argv[i];
 		if (arg[0] != '-') {

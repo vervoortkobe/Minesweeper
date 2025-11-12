@@ -21,14 +21,14 @@ int SDL_main(int argc, char *argv[]) {
             return 1;
         }
         create_map();
-        // Alloceer buffers voor de nieuwe map
+        // Kijk na of er reeds state buffers werden gealloceerd voor de GUI.
         if (alloc_state_buffers() != 0) {
             fprintf(stderr, "Failed to allocate GUI state buffers\n");
             return 1;
         }
     } else {
         create_map();
-        /* ensure state buffers exist for the default map */
+        // Kijk na of state buffers voor de GUI van de default map al bestaan.
         if (alloc_state_buffers() != 0) {
             fprintf(stderr, "Failed to allocate GUI state buffers\n");
             return 1;
