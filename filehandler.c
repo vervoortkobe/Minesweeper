@@ -14,13 +14,7 @@ void writeFile(const char* filename, const char* data) {
     }
 }
 
-int fh_file_exists(const char *filename) {
-    FILE *f = fopen(filename, "r");
-    if (f) { fclose(f); return 1; }
-    return 0;
-}
-
-int fh_read_lines(const char *filename, char ***out_lines, int *out_rows) {
+int read_lines(const char *filename, char ***out_lines, int *out_rows) {
     if (!filename || !out_lines || !out_rows) return -1;
     FILE *f = fopen(filename, "r");
     if (!f) return -1;
@@ -46,7 +40,7 @@ int fh_read_lines(const char *filename, char ***out_lines, int *out_rows) {
     return 0;
 }
 
-void fh_free_lines(char **lines, int rows) {
+void free_lines(char **lines, int rows) {
     if (!lines) return;
     for (int i = 0; i < rows; ++i) if (lines[i]) free(lines[i]);
     free(lines);

@@ -4,9 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "map.h"
-#include <dirent.h>
 #include <stdbool.h>
-#include "args.h"
 #include "filehandler.h"
 
 /*
@@ -15,7 +13,7 @@
  */
 static SDL_Renderer *renderer;
 
-/* De afbeelding die een vakje met een "1" in voorstelt. */
+// Instantieer de variabelen voor het bijhouden van de textures.
 static SDL_Texture *digit_textures[9] = { NULL };
 static SDL_Texture *digit_covered_texture = NULL;
 static SDL_Texture *digit_flagged_texture = NULL;
@@ -55,11 +53,11 @@ int should_continue = 1;
  */
 static SDL_Window *window;
 
-// Game state for GUI: covered/uncovered/flagged (dynamic, sized to map_w x map_h)
+// Verschillende game states
 static bool *uncovered = NULL;
 static bool *flagged = NULL;
-static bool mines_placed = false; // whether add_mines_excluding has been called
-static bool show_bombs = false; // toggled with key 'b'
+static bool mines_placed = false; // of de mijnen reeds geplaatst zijn via add_mines_excluding
+static bool show_bombs = false; // via 'b' key
 static bool game_lost = false;
 static int losing_x = -1;
 static int losing_y = -1;
@@ -69,11 +67,9 @@ static bool *removed_cells = NULL;
 static uint32_t win_start_time = 0;
 static uint32_t win_last_remove = 0;
 static int win_remaining = 0;
-static const uint32_t WIN_REMOVE_INTERVAL_MS = 30; // remove one box every 30ms (faster)
-static bool show_all = false; // toggled with key 'p'
+static bool show_all = false; // via 'p' key
 static bool *saved_uncovered = NULL;
 
-/* access helpers */
 #define UNC(r,c) (uncovered[(r) * map_w + (c)])
 #define FLAG(r,c) (flagged[(r) * map_w + (c)])
 #define REMOVED(r,c) (removed_cells[(r) * map_w + (c)])
@@ -81,7 +77,7 @@ static bool *saved_uncovered = NULL;
 
 int alloc_state_buffers(void) {
     size_t cells = (size_t)map_w * (size_t)map_h;
-    // free existing
+    // free als ze al bestaan
     if (uncovered) free(uncovered);
     if (flagged) free(flagged);
     if (removed_cells) free(removed_cells);
@@ -94,15 +90,7 @@ int alloc_state_buffers(void) {
     return 0;
 }
 
-void free_state_buffers(void) {
-    if (uncovered) { free(uncovered); uncovered = NULL; }
-    if (flagged) { free(flagged); flagged = NULL; }
-    if (removed_cells) { free(removed_cells); removed_cells = NULL; }
-    if (saved_uncovered) { free(saved_uncovered); saved_uncovered = NULL; }
-}
-
-// Print the current visible view of the board to stdout:
-// '#' = covered, 'F' = flagged, numbers or 'M' for uncovered
+// Bij elke interactie, wordt het speeldveld in de console geprint.
 static void print_view() {
     for (int y = 0; y < map_h; ++y) {
         for (int x = 0; x < map_w; ++x) {
@@ -137,7 +125,6 @@ static int is_relevant_event(SDL_Event *event) {
 // forward declaration so read_input can call it
 static void save_field_with_increment(void);
 
-
 /*
  * Vangt de input uit de GUI op. Deze functie is al deels geïmplementeerd, maar je moet die
  * zelf nog afwerken.
@@ -171,7 +158,7 @@ void read_input() {
         }
     }
 
-    // If player already lost or won, ignore all inputs except quitting so animations can continue
+    // Wanneer een game al gespeeld is (speler heeft al gewonnen/verloren), dan negeren we alle input en sluiten we het spel af.
     if ((game_lost || game_won) && event.type != SDL_QUIT) {
         return;
     }
@@ -179,7 +166,7 @@ void read_input() {
     switch (event.type) {
     case SDL_KEYDOWN:
         if (event.key.keysym.sym == SDLK_p) {
-            // Toggle reveal-all on the board (temporary reveal)
+            // Tijdelijk uncover alles via 'p' key
             show_all = !show_all;
             if (show_all) {
                 // save previous uncovered state
@@ -430,7 +417,7 @@ void draw_window() {
     // If win animation running, remove a random non-removed cell periodically
     if (game_won && win_remaining > 0) {
         uint32_t now = SDL_GetTicks();
-        if (now - win_last_remove >= WIN_REMOVE_INTERVAL_MS) {
+        if (now - win_last_remove >= 20) {
             // pick a random remaining cell
             int tries = 0;
             while (tries < 1000 && win_remaining > 0) {
@@ -609,8 +596,8 @@ static void save_field_with_increment(void);
 int load_game_file(const char *filename) {
     char **lines = NULL;
     int rows = 0;
-    if (fh_read_lines(filename, &lines, &rows) != 0) return -1;
-    if (rows == 0) { fh_free_lines(lines, rows); return -1; }
+    if (read_lines(filename, &lines, &rows) != 0) return -1;
+    if (rows == 0) { free_lines(lines, rows); return -1; }
     int sep = -1;
     for (int i = 0; i < rows; ++i) if (lines[i][0] == '\0') { sep = i; break; }
     int map_rows = (sep == -1) ? rows : sep;
@@ -619,8 +606,8 @@ int load_game_file(const char *filename) {
     char *p = strtok(tmp, " \t");
     while (p) { cols++; p = strtok(NULL, " \t"); }
     free(tmp);
-    if (cols <= 0) { fh_free_lines(lines, rows); return -1; }
-    if (init_map(cols, map_rows, 0) != 0) { fh_free_lines(lines, rows); return -1; }
+    if (cols <= 0) { free_lines(lines, rows); return -1; }
+    if (init_map(cols, map_rows, 0) != 0) { free_lines(lines, rows); return -1; }
     int mines = 0;
     for (int y = 0; y < map_rows; ++y) {
         int c = 0;
@@ -633,7 +620,7 @@ int load_game_file(const char *filename) {
         }
     }
     map_mines = mines;
-    if (alloc_state_buffers() != 0) { fh_free_lines(lines, rows); free_map(); return -1; }
+    if (alloc_state_buffers() != 0) { free_lines(lines, rows); free_map(); return -1; }
     for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(y,x) = false; FLAG(y,x) = false; }
     if (sep != -1) {
         int state_rows = rows - (sep + 1);
@@ -649,7 +636,7 @@ int load_game_file(const char *filename) {
             }
         }
     }
-    fh_free_lines(lines, rows);
+    free_lines(lines, rows);
     mines_placed = true;
     return 0;
 }

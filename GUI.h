@@ -1,14 +1,6 @@
 #ifndef MINESWEEPER_GUI_H
 #define MINESWEEPER_GUI_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
-/*
- * Importeer de benodigde functiedeclaraties uit SDL2.
- */
-#include <SDL2/SDL.h>
-
 /*
  * De hoogte en breedte van het venster (in pixels).
  * Deze dimensies zijn arbitrair gekozen. Deze dimensies hangen mogelijk af van de grootte van het speelveld.
@@ -29,15 +21,14 @@ void free_gui();
 void draw_window();
 void read_input();
 
-/* Expose a small set of GUI-state helpers for the program entry point */
-/* Allocate/free the uncovered/flagged/profile buffers sized to the current map_w/map_h */
+// Alloceer/free de uncovered/flagged buffers met map data
 int alloc_state_buffers(void);
-void free_state_buffers(void);
 
-/* When the program loop is driven from another file, allow main to know when to stop */
+// Nodig door opsplitsen van files. Hierdoor weet main ook wanneer er gestopt moet worden.
+// Deze staat altijd op true, maar wordt enkel op false gezet wanneer de winanimatie op het einde gedaan is of wanneer de speler op het kruisje heeft gedrukt.
 extern int should_continue;
 
-/* Allow loading a saved field (implemented in GUI.c) from main.c */
+// Een speelveld inladen via een opgeslagen field bestand
 int load_game_file(const char *filename);
 
 #endif //MINESWEEPER_GUI_H

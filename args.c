@@ -1,6 +1,3 @@
-// Simple CLI parsing implementation moved out of GUI.c
-// Created by automated refactor on 2025-11-11
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -46,7 +43,7 @@ int parse_cli_args(int argc, char *argv[], CLIArgs *out) {
 		}
 	}
 
-	// disallow combining -f with -w/-h/-m
+	// Je kan niet -f combineren met -w/-h/-m
 	if (out->load_file && (out->w != -1 || out->h != -1 || out->m != -1)) {
 		out->error = 1;
 		snprintf(out->error_msg, sizeof(out->error_msg), "Cannot combine -f with -w/-h/-m options");
