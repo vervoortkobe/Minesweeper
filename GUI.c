@@ -77,17 +77,21 @@ static bool *saved_uncovered = NULL;
 
 int alloc_state_buffers(void) {
     size_t cells = (size_t)map_w * (size_t)map_h;
-    // free als ze al bestaan
-    if (uncovered) free(uncovered);
-    if (flagged) free(flagged);
-    if (removed_cells) free(removed_cells);
-    if (saved_uncovered) free(saved_uncovered);
+    free_state_buffers();
     uncovered = (bool*)calloc(cells, sizeof(bool));
     flagged = (bool*)calloc(cells, sizeof(bool));
     removed_cells = (bool*)calloc(cells, sizeof(bool));
     saved_uncovered = (bool*)calloc(cells, sizeof(bool));
     if (!uncovered || !flagged || !removed_cells || !saved_uncovered) return -1;
     return 0;
+}
+
+// free als ze al bestaan
+void free_state_buffers(void) {
+    free(uncovered);
+    free(flagged);
+    free(removed_cells);
+    free(saved_uncovered);
 }
 
 // Bij elke interactie, wordt het speeldveld in de console geprint.
@@ -544,8 +548,6 @@ void free_gui() {
     SDL_Quit();
 }
 
-/* main moved to main.c - GUI implements drawing/input/state helpers only */
-
 // Save current map to an incrementally numbered file: field_<width>x<height>_<n>.txt
 static void save_field_with_increment() {
     char filename[256];
@@ -577,7 +579,7 @@ static void save_field_with_increment() {
         f_arr[idx] = FLAG(y,x) ? 1 : 0;
         u_arr[idx] = UNC(y,x) ? 1 : 0;
     }
-    if (fh_save_field_with_state(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
+    if (save_field_with_state(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
     } else {
         printf("Saved field and play state to %s\n", filenamebuf);

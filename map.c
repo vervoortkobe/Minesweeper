@@ -1,7 +1,3 @@
-//
-// Created by vervo on 13/10/2025.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

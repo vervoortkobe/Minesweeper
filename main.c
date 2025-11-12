@@ -42,6 +42,7 @@ int SDL_main(int argc, char *argv[]) {
     }
     // Dealloceer al het gebruikte geheugen voor de GUI en de map.
     free_gui();
+    free_state_buffers();
     free_map();
     return 0;
 }

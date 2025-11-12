@@ -46,7 +46,7 @@ void free_lines(char **lines, int rows) {
     free(lines);
 }
 
-int fh_save_field_with_state(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered) {
+int save_field_with_state(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered) {
     if (!filename || !map) return -1;
     FILE *out = fopen(filename, "w");
     if (!out) return -1;
