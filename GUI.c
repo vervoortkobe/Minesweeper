@@ -33,6 +33,55 @@ int calcDisplaySize() {
     return 0;
 }
 
+// Current window dimensions (set by initialize_window)
+static int current_window_w = WINDOW_WIDTH;
+static int current_window_h = WINDOW_HEIGHT;
+
+// Try candidate sizes then fall back to a computed size that fits the desktop.
+int choose_image_and_window_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h) {
+    if (!out_image_size || !out_window_w || !out_window_h) return -1;
+    if (cols <= 0 || rows <= 0) return -1;
+
+    // Ensure SDL video subsystem is available to query desktop mode.
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        // SDL init failed; fall back to defaults
+        *out_image_size = DEFAULT_IMAGE_SIZE;
+        *out_window_w = cols * (*out_image_size);
+        *out_window_h = rows * (*out_image_size);
+        return 0;
+    }
+
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0) {
+        *out_image_size = DEFAULT_IMAGE_SIZE;
+        *out_window_w = cols * (*out_image_size);
+        *out_window_h = rows * (*out_image_size);
+        return 0;
+    }
+
+    int pref_sizes[] = {100, 75, 50};
+    int chosen = -1;
+    for (int i = 0; i < 3; ++i) {
+        int s = pref_sizes[i];
+        int ww = cols * s;
+        int hh = rows * s;
+        if (ww <= dm.w && hh <= dm.h) { chosen = s; break; }
+    }
+    if (chosen == -1) {
+        // none of the presets fit; compute the max possible size that fits
+        int max_w = dm.w / cols;
+        int max_h = dm.h / rows;
+        int s = max_w < max_h ? max_w : max_h;
+        if (s < 20) s = 20; // enforce a small minimum
+        chosen = s;
+    }
+
+    *out_image_size = chosen;
+    *out_window_w = cols * chosen;
+    *out_window_h = rows * chosen;
+
+    return 0;
+}
+
 /*
  * Onderstaande twee lijnen maken deel uit van de minimalistische voorbeeldapplicatie:
  * ze houden de laatste positie bij waar de gebruiker geklikt heeft.
@@ -139,8 +188,8 @@ void read_input() {
     SDL_Event event;
     bool changed = false;
     int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = WINDOW_WIDTH / grid_cols;
-    int cell_h = WINDOW_HEIGHT / grid_rows;
+    int cell_w = current_window_w / grid_cols;
+    int cell_h = current_window_h / grid_rows;
 
     /*
      * Handelt alle input uit de GUI af.
@@ -217,8 +266,8 @@ void read_input() {
         mouse_y = event.button.y;
 
     int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = WINDOW_WIDTH / grid_cols;
-    int cell_h = WINDOW_HEIGHT / grid_rows;
+    int cell_w = current_window_w / grid_cols;
+    int cell_h = current_window_h / grid_rows;
 
         int clicked_col = mouse_x / cell_w;
         int clicked_row = mouse_y / cell_h;
@@ -340,8 +389,8 @@ void read_input() {
 
 void draw_window() {
     int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = WINDOW_WIDTH / grid_cols;
-    int cell_h = WINDOW_HEIGHT / grid_rows;
+    int cell_w = current_window_w / grid_cols;
+    int cell_h = current_window_h / grid_rows;
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
@@ -474,6 +523,9 @@ void initialize_window(const char *title, int window_width, int window_height) {
 
         /* Initialiseert de renderer. */
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+        /* store current window size for layout calculations */
+        current_window_w = window_width;
+        current_window_h = window_height;
         /* Laat de default-kleur die de renderer in het venster tekent wit zijn. */
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 }

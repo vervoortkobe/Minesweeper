@@ -51,5 +51,15 @@ int parse_cli_args(int argc, char *argv[], CLIArgs *out) {
 		return out->error;
 	}
 
+	// If width/height/mines given, make sure mines does not exceed total boxes
+	if (!out->load_file && out->w > 0 && out->h > 0 && out->m >= 0) {
+		long total = (long)out->w * (long)out->h;
+		if ((long)out->m > total) {
+			out->error = 1;
+			snprintf(out->error_msg, sizeof(out->error_msg), "Number of mines (%d) cannot exceed number of boxes (%ld)", out->m, total);
+			return out->error;
+		}
+	}
+
 	return 0;
 }

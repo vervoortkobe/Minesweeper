@@ -35,7 +35,18 @@ int SDL_main(int argc, char *argv[]) {
         }
     }
 
-    initialize_gui(WINDOW_WIDTH, WINDOW_HEIGHT);
+    // choose a suitable image/window size based on the map dimensions and desktop
+    int chosen_image_size = 0;
+    int win_w = WINDOW_WIDTH;
+    int win_h = WINDOW_HEIGHT;
+    if (choose_image_and_window_size(map_w, map_h, &chosen_image_size, &win_w, &win_h) == 0) {
+        // chosen values returned in win_w/win_h
+    } else {
+        // fallback to defaults
+        win_w = WINDOW_WIDTH;
+        win_h = WINDOW_HEIGHT;
+    }
+    initialize_gui(win_w, win_h);
     while (should_continue) {
         draw_window();
         read_input();
