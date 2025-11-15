@@ -5,7 +5,7 @@ typedef struct {
     const char *load_file; // -f <bestand>
     int w; // -w <breedte>
     int h; // -h <hoogte>
-    int m; // -m <bommen>
+    int m; // -m <mijnen>
     int error; // non-zero if parse failed
     char error_msg[256];
 } CLIArgs;

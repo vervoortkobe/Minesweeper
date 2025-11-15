@@ -106,7 +106,7 @@ static SDL_Window *window;
 static bool *uncovered = NULL;
 static bool *flagged = NULL;
 static bool mines_placed = false; // of de mijnen reeds geplaatst zijn via add_mines_excluding
-static bool show_bombs = false; // via 'b' key
+static bool show_mines = false; // via 'b' key
 static bool game_lost = false;
 static int losing_x = -1;
 static int losing_y = -1;
@@ -124,10 +124,10 @@ static bool *saved_uncovered = NULL;
 #define REMOVED(r, c) (removed_cells[(r) * map_w + (c)])
 #define SAVEDUNC(r, c) (saved_uncovered[(r) * map_w + (c)])
 
-int alloc_state_buffers(void) {
+int alloc_game_states(void) {
     size_t cells = (size_t)map_w * (size_t)map_h;
     // maak de state buffers leeg als ze al bestaan
-    free_state_buffers();
+    free_game_states();
     uncovered = (bool*)calloc(cells, sizeof(bool));
     flagged = (bool*)calloc(cells, sizeof(bool));
     removed_cells = (bool*)calloc(cells, sizeof(bool));
@@ -137,7 +137,7 @@ int alloc_state_buffers(void) {
 }
 
 // free als ze al bestaan
-void free_state_buffers(void) {
+void free_game_states(void) {
     free(uncovered);
     free(flagged);
     free(removed_cells);
@@ -244,8 +244,8 @@ void read_input() {
             }
             changed = true;
         } else if (event.key.keysym.sym == SDLK_b) {
-            show_bombs = !show_bombs;
-            printf("Toggle show bombs: %d\n", show_bombs);
+            show_mines = !show_mines;
+            printf("Toggle show mines: %d\n", show_mines);
             // mark view changed so we print once after handling the event
             changed = true;
         } else if (event.key.keysym.sym == SDLK_s) {
@@ -294,7 +294,7 @@ void read_input() {
                 }
             }
             if (total_flags == map_mines && correct_flags == map_mines) {
-                printf("All bombs flagged - you win!\n");
+                printf("All mines flagged - you win!\n");
                 // start win animation instead of immediately closing
                 game_won = true;
                 win_start_time = SDL_GetTicks();
@@ -416,8 +416,8 @@ void draw_window() {
                 continue; // disappeared
             }
 
-            // If user asked to show bombs, draw them regardless of uncovered state
-            if (show_bombs && MAP(row,col) == 'M') {
+            // If user asked to show mines, draw them regardless of uncovered state
+            if (show_mines && MAP(row,col) == 'M') {
                 // if win animation is active and cell has been removed, skip drawing
                     if (game_won && REMOVED(row,col)) continue;
                 SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
@@ -673,7 +673,7 @@ int load_game_file(const char *filename) {
         }
     }
     map_mines = mines;
-    if (alloc_state_buffers() != 0) { free_lines(lines, rows); free_map(); return -1; }
+    if (alloc_game_states() != 0) { free_lines(lines, rows); free_map(); return -1; }
     for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(y, x) = false; FLAG(y, x) = false; }
     if (sep != -1) {
         int state_rows = rows - (sep + 1);

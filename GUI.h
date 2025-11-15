@@ -22,8 +22,8 @@ void free_gui();
 void draw_window();
 void read_input();
 
-int alloc_state_buffers(void);
-void free_state_buffers(void);
+int alloc_game_states(void);
+void free_game_states(void);
 
 extern int should_continue;
 
