@@ -70,10 +70,10 @@ static int win_remaining = 0;
 static bool show_all = false; // via 'p' key
 static bool *saved_uncovered = NULL;
 
-#define UNC(r,c) (uncovered[(r) * map_w + (c)])
-#define FLAG(r,c) (flagged[(r) * map_w + (c)])
-#define REMOVED(r,c) (removed_cells[(r) * map_w + (c)])
-#define SAVEDUNC(r,c) (saved_uncovered[(r) * map_w + (c)])
+#define UNC(r, c) (uncovered[(r) * map_w + (c)])
+#define FLAG(r, c) (flagged[(r) * map_w + (c)])
+#define REMOVED(r, c) (removed_cells[(r) * map_w + (c)])
+#define SAVEDUNC(r, c) (saved_uncovered[(r) * map_w + (c)])
 
 int alloc_state_buffers(void) {
     size_t cells = (size_t)map_w * (size_t)map_h;
@@ -99,9 +99,9 @@ void free_state_buffers(void) {
 static void print_view() {
     for (int y = 0; y < map_h; ++y) {
         for (int x = 0; x < map_w; ++x) {
-            if (UNC(y,x)) {
-                putchar(MAP(y,x));
-            } else if (FLAG(y,x)) {
+            if (UNC(y, x)) {
+                putchar(MAP(y, x));
+            } else if (FLAG(y, x)) {
                 putchar('F');
             } else {
                 putchar('#');
@@ -175,7 +175,7 @@ void read_input() {
             show_all = !show_all;
             if (show_all) {
                 // save previous uncovered state
-                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) SAVEDUNC(y,x) = UNC(y,x);
+                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) SAVEDUNC(y, x) = UNC(y, x);
                 if (!mines_placed) {
                     // place mines without excluding any specific cell
                     add_mines_excluding(-1, -1);
@@ -184,13 +184,13 @@ void read_input() {
                 }
                 for (int y = 0; y < map_h; ++y) {
                     for (int x = 0; x < map_w; ++x) {
-                        UNC(y,x) = true;
+                        UNC(y, x) = true;
                     }
                 }
                 printf("Show-all enabled (P pressed)\n");
             } else {
                 // restore previous uncovered state
-                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) UNC(y,x) = SAVEDUNC(y,x);
+                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) UNC(y, x) = SAVEDUNC(y, x);
                 printf("Show-all disabled (P pressed)\n");
             }
             changed = true;
@@ -238,9 +238,9 @@ void read_input() {
             int total_flags = 0;
             for (int y = 0; y < map_h; ++y) {
                 for (int x = 0; x < map_w; ++x) {
-                    if (FLAG(y,x)) {
+                    if (FLAG(y, x)) {
                         total_flags++;
-                        if (MAP(y,x) == 'M') correct_flags++;
+                        if (MAP(y, x) == 'M') correct_flags++;
                     }
                 }
             }
@@ -254,7 +254,7 @@ void read_input() {
                 win_remaining = map_w * map_h;
                 for (int y = 0; y < map_h; ++y) {
                     for (int x = 0; x < map_w; ++x) {
-                        REMOVED(y,x) = false;
+                        REMOVED(y, x) = false;
                     }
                 }
                 // seed rand for the removal ordering
@@ -279,7 +279,7 @@ void read_input() {
                     // toon alle mijnen
                     for (int y = 0; y < map_h; ++y) {
                         for (int x = 0; x < map_w; ++x) {
-                            if (MAP(y,x) == 'M') UNC(y,x) = true;
+                            if (MAP(y, x) == 'M') UNC(y, x) = true;
                         }
                     }
                     // uncover ook de mijn waarop geklikt werd
@@ -509,7 +509,7 @@ void initialize_textures() {
     digit_covered_texture = SDL_CreateTextureFromSurface(renderer, digit_covered_surface);
     digit_flagged_texture = SDL_CreateTextureFromSurface(renderer, digit_flagged_surface);
     digit_mine_texture = SDL_CreateTextureFromSurface(renderer, digit_mine_surface);
-    
+
     /* Dealloceer de tijdelijke SDL_Surfaces die werden aangemaakt. */
     SDL_FreeSurface(digit_covered_surface);
     SDL_FreeSurface(digit_flagged_surface);
@@ -575,8 +575,8 @@ static void save_field_with_increment() {
     }
     for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) {
         int idx = y * map_w + x;
-        f_arr[idx] = FLAG(y,x) ? 1 : 0;
-        u_arr[idx] = UNC(y,x) ? 1 : 0;
+        f_arr[idx] = FLAG(y, x) ? 1 : 0;
+        u_arr[idx] = UNC(y, x) ? 1 : 0;
     }
     if (save_field_with_state(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
@@ -622,7 +622,7 @@ int load_game_file(const char *filename) {
     }
     map_mines = mines;
     if (alloc_state_buffers() != 0) { free_lines(lines, rows); free_map(); return -1; }
-    for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(y,x) = false; FLAG(y,x) = false; }
+    for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(y, x) = false; FLAG(y, x) = false; }
     if (sep != -1) {
         int state_rows = rows - (sep + 1);
         int use_rows = state_rows < map_rows ? state_rows : map_rows;

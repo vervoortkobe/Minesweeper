@@ -14,7 +14,7 @@ char *map = NULL; /* linear buffer map_h * map_w */
 void fill_numbers() {
     for (int y = 0; y < map_h; y++) {
         for (int x = 0; x < map_w; x++) {
-            if (MAP(y,x) == 'M') continue;
+            if (MAP(y, x) == 'M') continue;
             int count = 0;
             for (int dy = -1; dy <= 1; dy++) {
                 for (int dx = -1; dx <= 1; dx++) {
@@ -25,7 +25,7 @@ void fill_numbers() {
                     }
                 }
             }
-            MAP(y,x) = '0' + count;
+            MAP(y, x) = '0' + count;
         }
     }
 }
@@ -34,7 +34,7 @@ void create_map() {
     if (map == NULL) init_map(map_w, map_h, map_mines);
     for (int y = 0; y < map_h; y++) {
         for (int x = 0; x < map_w; x++) {
-            MAP(y,x) ='0';
+            MAP(y, x) ='0';
         }
     }
 }
@@ -43,7 +43,7 @@ void create_map() {
 void print_map() {
     for (int y = 0; y < map_h; y++) {
         for (int x = 0; x < map_w; x++) {
-            printf("%c ", MAP(y,x));
+            printf("%c ", MAP(y, x));
         }
         printf("\n");
     }
@@ -56,8 +56,8 @@ void add_mines_excluding(int exclude_x, int exclude_y) {
         int x = rand() % map_w;
         int y = rand() % map_h;
         if (exclude_x >= 0 && x == exclude_x && y == exclude_y) continue;
-        if (MAP(y,x) == '0') {
-            MAP(y,x) = 'M';
+        if (MAP(y, x) == '0') {
+            MAP(y, x) = 'M';
             placed++;
         }
     }
