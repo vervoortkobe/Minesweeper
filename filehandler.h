@@ -1,4 +1,3 @@
-// filehandler.h - small utilities for reading/writing save files
 #ifndef MINESWEEPER_FILEHANDLER_H
 #define MINESWEEPER_FILEHANDLER_H
 
