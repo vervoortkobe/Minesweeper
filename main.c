@@ -38,9 +38,9 @@ int SDL_main(int argc, char *argv[]) {
             return 1;
         }
         create_map();
-        // We alloceren de nodige game_states met alloc_game_states en printen een eventuele error.
+        // We alloceren de nodige game states met alloc_game_states en printen een eventuele error.
         if (alloc_game_states() != 0) {
-            fprintf(stderr, "Failed to allocate game_states\n");
+            fprintf(stderr, "Failed to allocate game states\n");
             return 1;
         }
     /*
@@ -48,30 +48,35 @@ int SDL_main(int argc, char *argv[]) {
     */
     } else {
         create_map();
-        // We alloceren de nodige game_states met alloc_game_states en printen een eventuele error.
+        // We alloceren de nodige game states met alloc_game_states en printen een eventuele error.
         if (alloc_game_states() != 0) {
-            fprintf(stderr, "Failed to allocate game_states\n");
+            fprintf(stderr, "Failed to allocate game states\n");
             return 1;
         }
     }
 
-    // choose a suitable image/window size based on the map dimensions and desktop
+    /*
+    * Initialiseer de dimensies van de window en bepaal een geschikte image size.
+    * We doen dit door de functie choose_image_and_window_size aan te roepen.
+    */
     int chosen_image_size = 0;
     int win_w = WINDOW_WIDTH;
     int win_h = WINDOW_HEIGHT;
-    if (choose_image_and_window_size(map_w, map_h, &chosen_image_size, &win_w, &win_h) == 0) {
-        // chosen values returned in win_w/win_h
-    } else {
-        // fallback to defaults
+    if (choose_image_and_window_size(map_w, map_h, &chosen_image_size, &win_w, &win_h) != 0) {
+        // Indien deze functie faalt, gebruiken we de standaard waarden.
         win_w = WINDOW_WIDTH;
         win_h = WINDOW_HEIGHT;
     }
+    /*
+    * Daarna initialiseren we de GUI met de juiste window breedte en hoogte.
+    * De game loop wordt dan gestart, waarin we blijven tekenen en input lezen zolang should_continue waar is.
+    */
     initialize_gui(win_w, win_h);
     while (should_continue) {
         draw_window();
         read_input();
     }
-    // Dealloceer al het gebruikte geheugen voor de GUI, de game_states en de map.
+    // Dealloceer al het gebruikte geheugen voor de GUI, game states en map.
     free_gui();
     free_game_states();
     free_map();
