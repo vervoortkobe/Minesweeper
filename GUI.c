@@ -622,7 +622,7 @@ static void save_field_with_increment() {
     if (!f_arr || !u_arr) {
         if (f_arr) free(f_arr);
         if (u_arr) free(u_arr);
-        fprintf(stderr, "Out of memory while saving\n");
+        perror("Out of memory while saving");
         return;
     }
     for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) {

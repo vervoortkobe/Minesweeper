@@ -8,11 +8,11 @@ int SDL_main(int argc, char *argv[]) {
     /*
     * CliArgs: we instantiëren de cli variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
     * We parsen de CLI argumenten met de parse_cli_args functie en printen een eventuele error.
-    * Zie HOC Slides 4_input_output dia 29.
+    * Zie HOC Slides 4_input_output dia 29 voor perror.
     */
     CLIArgs cli;
     if (parse_cli_args(argc, argv, &cli) != 0) {
-        fprintf(stderr, "%s\n", cli.error_msg);
+        perror(cli.error_msg);
         return 1;
     }
 
@@ -23,7 +23,7 @@ int SDL_main(int argc, char *argv[]) {
     */
     if (cli.load_file) {
         if (load_game_file(cli.load_file) != 0) {
-            fprintf(stderr, "Failed to load map from %s\n", cli.load_file);
+            perror(sprintf("Failed to load map from %s\n", cli.load_file));
             return 1;
         }
     /*
@@ -34,23 +34,21 @@ int SDL_main(int argc, char *argv[]) {
     */
     } else if (cli.w > 0 && cli.h > 0 && cli.m >= 0) {
         if (init_map(cli.w, cli.h, cli.m) != 0) {
-            fprintf(stderr, "Failed to initialize map %dx%d\n", cli.w, cli.h);
+            perror(sprintf("Failed to initialize map %dx%d\n", cli.w, cli.h));
             return 1;
         }
         create_map();
         // We alloceren de nodige game states met alloc_game_states en printen een eventuele error.
         if (alloc_game_states() != 0) {
-            fprintf(stderr, "Failed to allocate game states\n");
+            perror("Failed to allocate game states");
             return 1;
         }
-    /*
-    * Als er geen bestand of breedte, hoogte of aantal mijnen wordt meegegeven, creëren we een standaard map van 10x10 met 10 mijnen.
-    */
+    // Als er geen bestand of breedte, hoogte of aantal mijnen wordt meegegeven, creëren we een standaard map van 10x10 met 10 mijnen.
     } else {
         create_map();
         // We alloceren de nodige game states met alloc_game_states en printen een eventuele error.
         if (alloc_game_states() != 0) {
-            fprintf(stderr, "Failed to allocate game states\n");
+            perror("Failed to allocate game states");
             return 1;
         }
     }
@@ -76,7 +74,7 @@ int SDL_main(int argc, char *argv[]) {
         draw_window();
         read_input();
     }
-    // Dealloceer al het gebruikte geheugen voor de GUI, game states en map.
+    // Dealloceer al het gebruikte geheugen voor de GUI, de game states en de map.
     free_gui();
     free_game_states();
     free_map();
