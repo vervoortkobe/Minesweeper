@@ -23,7 +23,7 @@ int SDL_main(int argc, char *argv[]) {
     */
     if (cli.load_file) {
         if (load_game_file(cli.load_file) != 0) {
-            perror(sprintf("Failed to load map from %s\n", cli.load_file));
+           fprintf(stderr, "Failed to load map from %s\n", cli.load_file);
             return 1;
         }
     /*
@@ -34,7 +34,7 @@ int SDL_main(int argc, char *argv[]) {
     */
     } else if (cli.w > 0 && cli.h > 0 && cli.m >= 0) {
         if (init_map(cli.w, cli.h, cli.m) != 0) {
-            perror(sprintf("Failed to initialize map %dx%d\n", cli.w, cli.h));
+            fprintf(stderr, "Failed to initialize map %dx%d\n", cli.w, cli.h);
             return 1;
         }
         create_map();
