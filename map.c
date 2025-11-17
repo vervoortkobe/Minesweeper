@@ -12,23 +12,16 @@ int map_mines = 10;
 // Instantieer een standaard speelveld. Het wordt later lineair ingevuld.
 char *map = NULL;
 
-void fill_numbers() {
-    for (int y = 0; y < map_h; y++) {
-        for (int x = 0; x < map_w; x++) {
-            if (MAP(y, x) == 'M') continue;
-            int count = 0;
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    if (dx == 0 && dy == 0) continue;
-                    int ny = y + dy, nx = x + dx;
-                    if (ny >= 0 && ny < map_h && nx >= 0 && nx < map_w) {
-                        if (MAP(ny,nx) == 'M') count++;
-                    }
-                }
-            }
-            MAP(y, x) = '0' + count;
-        }
-    }
+int init_map(int w, int h, int mines) {
+    if (w <= 0 || h <= 0) return -1;
+    map_w = w;
+    map_h = h;
+    map_mines = mines;
+    if (map) free(map);
+    map = (char*)malloc((int)map_w * map_h);
+    if (!map) return -1;
+    for (int i = 0; i < map_w * map_h; ++i) map[i] = '0';
+    return 0;
 }
 
 void create_map() {
@@ -50,7 +43,26 @@ void print_map() {
     }
 }
 
-void add_mines_excluding(int exclude_x, int exclude_y) {
+void fill_map() {
+    for (int y = 0; y < map_h; y++) {
+        for (int x = 0; x < map_w; x++) {
+            if (MAP(y, x) == 'M') continue;
+            int count = 0;
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    int ny = y + dy, nx = x + dx;
+                    if (ny >= 0 && ny < map_h && nx >= 0 && nx < map_w) {
+                        if (MAP(ny,nx) == 'M') count++;
+                    }
+                }
+            }
+            MAP(y, x) = '0' + count;
+        }
+    }
+}
+
+void add_mines(int exclude_x, int exclude_y) {
     
     int placed = 0;
     while (placed < map_mines) {
@@ -62,19 +74,7 @@ void add_mines_excluding(int exclude_x, int exclude_y) {
             placed++;
         }
     }
-    fill_numbers();
-}
-
-int init_map(int w, int h, int mines) {
-    if (w <= 0 || h <= 0) return -1;
-    map_w = w;
-    map_h = h;
-    map_mines = mines;
-    if (map) free(map);
-    map = (char*)malloc((int)map_w * map_h);
-    if (!map) return -1;
-    for (int i = 0; i < map_w * map_h; ++i) map[i] = '0';
-    return 0;
+    fill_map();
 }
 
 void free_map() {
@@ -82,45 +82,4 @@ void free_map() {
         free(map);
         map = NULL;
     }
-}
-
-int load_map_from_file(const char *filename) {
-    FILE *f = fopen(filename, "r");
-    if (!f) return -1;
-    // read lines into buffer
-    char line[1024];
-    char *lines[1024];
-    int rows = 0;
-    while (fgets(line, sizeof(line), f)) {
-        int len = strlen(line);
-        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) { line[--len] = '\0'; }
-        lines[rows] = strdup(line);
-        rows++;
-    }
-    fclose(f);
-    if (rows == 0) return -1;
-    // determine columns by splitting first line
-    int cols = 0;
-    char *p = strtok(lines[0], " \t");
-    while (p) { cols++; p = strtok(NULL, " \t"); }
-    if (cols <= 0) return -1;
-    // allocate map
-    if (init_map(cols, rows, 0) != 0) return -1;
-    // fill map and count mines
-    int mines = 0;
-    for (int y = 0; y < rows; ++y) {
-        int c = 0;
-        char *token = strtok(lines[y], " \t");
-        while (token && c < cols) {
-            MAP(y,c) = token[0];
-            if (MAP(y,c) == 'M') mines++;
-            c++;
-            token = strtok(NULL, " \t");
-        }
-        // free line
-        free(lines[y]);
-    }
-    map_mines = mines;
-    fill_numbers();
-    return 0;
 }

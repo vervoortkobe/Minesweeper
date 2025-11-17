@@ -105,7 +105,7 @@ static SDL_Window *window;
 // Verschillende game states
 static bool *uncovered = NULL;
 static bool *flagged = NULL;
-static bool mines_placed = false; // of de mijnen reeds geplaatst zijn via add_mines_excluding
+static bool mines_placed = false; // of de mijnen reeds geplaatst zijn via add_mines
 static bool show_mines = false; // via 'b' key
 static bool game_lost = false;
 static int losing_x = -1;
@@ -227,7 +227,7 @@ void read_input() {
                 for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) SAVEDUNC(y, x) = UNC(y, x);
                 if (!mines_placed) {
                     // place mines without excluding any specific cell
-                    add_mines_excluding(-1, -1);
+                    add_mines(-1, -1);
                     print_map();
                     mines_placed = true;
                 }
@@ -313,7 +313,7 @@ void read_input() {
         } else {
             printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed) {
-                add_mines_excluding(clicked_col, clicked_row);
+                add_mines(clicked_col, clicked_row);
                 print_map();
                 mines_placed = true;
                 changed = true;
@@ -646,7 +646,7 @@ static void save_field_with_increment(void);
 // Format supported:
 //  - map only: rows of tokens (M/0..8) separated by spaces
 //  - map + state: same as above, then a blank line, then rows of state tokens per cell: U=uncovered, F=flagged, #=covered
-int load_game_file(const char *filename) {
+int load_file(const char *filename) {
     char **lines = NULL;
     int rows = 0;
     if (read_lines(filename, &lines, &rows) != 0) return -1;

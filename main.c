@@ -18,11 +18,11 @@ int SDL_main(int argc, char *argv[]) {
 
     /*
     * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven cli.load_file).
-    * Indien ja, laad de map vanuit het bestand met load_game_file.
+    * Indien ja, laad de map vanuit het bestand met load_file.
     * Print een eventuele error.
     */
     if (cli.load_file) {
-        if (load_game_file(cli.load_file) != 0) {
+        if (load_file(cli.load_file) != 0) {
            fprintf(stderr, "Failed to load map from %s\n", cli.load_file);
             return 1;
         }

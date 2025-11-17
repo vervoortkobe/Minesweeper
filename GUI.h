@@ -27,6 +27,6 @@ void free_game_states(void);
 
 extern int should_continue;
 
-int load_game_file(const char *filename);
+int load_file(const char *filename);
 
 #endif //MINESWEEPER_GUI_H
