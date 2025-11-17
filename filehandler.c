@@ -18,13 +18,13 @@ int read_lines(const char *filename, char ***out_lines, int *out_rows) {
     if (!filename || !out_lines || !out_rows) return -1;
     FILE *f = fopen(filename, "r");
     if (!f) return -1;
-    size_t cap = 64;
+    int cap = 64;
     char **lines = (char**)malloc(cap * sizeof(char*));
     if (!lines) { fclose(f); return -1; }
     char buffer[4096];
     int rows = 0;
     while (fgets(buffer, sizeof(buffer), f)) {
-        size_t len = strlen(buffer);
+        int len = strlen(buffer);
         while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r')) { buffer[--len] = '\0'; }
         if (rows >= (int)cap) {
             cap *= 2;

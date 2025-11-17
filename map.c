@@ -5,11 +5,12 @@
 
 #include "map.h"
 
+// Instantieer de standaardwaarden voor het speelveld.
 int map_w = 10;
 int map_h = 10;
 int map_mines = 10;
-
-char *map = NULL; /* linear buffer map_h * map_w */
+// Instantieer een standaard speelveld. Het wordt later lineair ingevuld.
+char *map = NULL;
 
 void fill_numbers() {
     for (int y = 0; y < map_h; y++) {
@@ -66,9 +67,11 @@ void add_mines_excluding(int exclude_x, int exclude_y) {
 
 int init_map(int w, int h, int mines) {
     if (w <= 0 || h <= 0) return -1;
-    map_w = w; map_h = h; map_mines = mines;
+    map_w = w;
+    map_h = h;
+    map_mines = mines;
     if (map) free(map);
-    map = (char*)malloc((size_t)map_w * map_h);
+    map = (char*)malloc((int)map_w * map_h);
     if (!map) return -1;
     for (int i = 0; i < map_w * map_h; ++i) map[i] = '0';
     return 0;
@@ -89,7 +92,7 @@ int load_map_from_file(const char *filename) {
     char *lines[1024];
     int rows = 0;
     while (fgets(line, sizeof(line), f)) {
-        size_t len = strlen(line);
+        int len = strlen(line);
         while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) { line[--len] = '\0'; }
         lines[rows] = strdup(line);
         rows++;

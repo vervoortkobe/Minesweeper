@@ -125,7 +125,7 @@ static bool *saved_uncovered = NULL;
 #define SAVEDUNC(r, c) (saved_uncovered[(r) * map_w + (c)])
 
 int alloc_game_states(void) {
-    size_t cells = (size_t)map_w * (size_t)map_h;
+    int cells = (int)map_w * (int)map_h;
     // maak de state buffers leeg als ze al bestaan
     free_game_states();
     uncovered = (bool*)calloc(cells, sizeof(bool));
@@ -350,10 +350,10 @@ void read_input() {
                     int cx = stack_x[sp];
                     int cy = stack_y[sp];
                     if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h) continue;
-                    if (UNC(cy,cx)) continue;
-                    UNC(cy,cx) = true;
+                    if (UNC(cy, cx)) continue;
+                    UNC(cy, cx) = true;
                     changed = true;
-                    if (MAP(cy,cx) == '0') {
+                    if (MAP(cy, cx) == '0') {
                         for (int dy = -1; dy <= 1; dy++) {
                             for (int dx = -1; dx <= 1; dx++) {
                                 if (dx == 0 && dy == 0) continue;
@@ -616,7 +616,7 @@ static void save_field_with_increment() {
     char filenamebuf[256];
     snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
     /* build temporary flagged/uncovered arrays as unsigned char arrays for filehandler API */
-    size_t cells = (size_t)map_w * (size_t)map_h;
+    int cells = (int)map_w * (int)map_h;
     unsigned char *f_arr = (unsigned char*)malloc(cells);
     unsigned char *u_arr = (unsigned char*)malloc(cells);
     if (!f_arr || !u_arr) {
@@ -666,8 +666,8 @@ int load_game_file(const char *filename) {
         int c = 0;
         char *tok = strtok(lines[y], " \t");
         while (tok && c < cols) {
-            MAP(y,c) = tok[0];
-            if (MAP(y,c) == 'M') mines++;
+            MAP(y, c) = tok[0];
+            if (MAP(y, c) == 'M') mines++;
             c++;
             tok = strtok(NULL, " \t");
         }
@@ -682,8 +682,8 @@ int load_game_file(const char *filename) {
             int c = 0;
             char *tok = strtok(lines[sep + 1 + y], " \t");
             while (tok && c < cols) {
-                if (tok[0] == 'F') FLAG(y,c) = true;
-                else if (tok[0] == 'U') UNC(y,c) = true;
+                if (tok[0] == 'F') FLAG(y, c) = true;
+                else if (tok[0] == 'U') UNC(y, c) = true;
                 c++;
                 tok = strtok(NULL, " \t");
             }
