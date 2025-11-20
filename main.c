@@ -7,11 +7,11 @@
 int SDL_main(int argc, char *argv[]) {
     /*
     * CliArgs: we instantiëren de cli variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
-    * We parsen de CLI argumenten met de parse_cli_args functie en printen een eventuele error.
+    * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error.
     * Zie HOC Slides 4_input_output dia 29 voor perror.
     */
     CLIArgs cli;
-    if (parse_cli_args(argc, argv, &cli) != 0) {
+    if (parse_args(argc, argv, &cli) != 0) {
         perror(cli.error_msg);
         return 1;
     }

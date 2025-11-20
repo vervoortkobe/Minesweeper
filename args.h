@@ -14,6 +14,6 @@ typedef struct {
     char error_msg[256];
 } CLIArgs;
 
-int parse_cli_args(int argc, char *argv[], CLIArgs *out);
+int parse_args(int argc, char *argv[], CLIArgs *out);
 
 #endif // MINESWEEPER_ARGS_H

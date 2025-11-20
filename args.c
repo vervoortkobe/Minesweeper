@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include "args.h"
 
-int parse_cli_args(int argc, char *argv[], CLIArgs *args) {
+// Deze functie parseert de door de cli meegegeven argumenten.
+int parse_args(int argc, char *argv[], CLIArgs *args) {
 	if (!args) return -1;
 	args->load_file = NULL;
 	args->w = -1;

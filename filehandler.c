@@ -1,4 +1,3 @@
-// filehandler.c - simple file utilities for Minesweeper
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,23 +45,30 @@ void free_lines(char **lines, int rows) {
     free(lines);
 }
 
+/*
+* Sla het speelveld op in een bestand via de 's' key.
+* Zie HOC Slides 4_input_output:
+* - dia 16 voor FILE
+* - dia 57 voor fputc
+* - dia 58 voor fopen
+*/
 int save_field(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered) {
     if (!filename || !map) return -1;
     FILE *out = fopen(filename, "w");
     if (!out) return -1;
-    for (int y = 0; y < h; ++y) {
-        for (int x = 0; x < w; ++x) {
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; ++y) {
             fputc(map[y * w + x], out);
             fputc(' ', out);
         }
         fputc('\n', out);
     }
     fputc('\n', out);
-    for (int y = 0; y < h; ++y) {
-        for (int x = 0; x < w; ++x) {
-            int idx = y * w + x;
-            if (flagged && flagged[idx]) { fputc('F', out); fputc(' ', out); }
-            else if (uncovered && uncovered[idx]) { fputc('U', out); fputc(' ', out); }
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; ++y) {
+            int i = y * w + x;
+            if (flagged && flagged[i]) { fputc('F', out); fputc(' ', out); }
+            else if (uncovered && uncovered[i]) { fputc('U', out); fputc(' ', out); }
             else { fputc('#', out); fputc(' ', out); }
         }
         fputc('\n', out);

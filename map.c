@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
 #include "map.h"
 
 // Instantieer de standaardwaarden voor het speelveld.
