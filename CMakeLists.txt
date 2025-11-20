@@ -14,7 +14,6 @@ add_executable(minesweeper
         GUI.c
         GUI.h
         main.c
-        main.h
         map.c
         map.h
         args.c

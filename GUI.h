@@ -14,23 +14,14 @@
  * dimensies ook aangepast worden.
  */
 #define DEFAULT_IMAGE_SIZE 50
-
 int choose_image_and_window_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h);
-
 void initialize_gui(int window_width, int window_height);
-
 void free_gui();
-
 void draw_window();
-
 void read_input();
-
 int alloc_game_states(void);
-
 void free_game_states(void);
-
 extern int should_continue;
-
 int load_file(const char *filename);
 
 #endif //MINESWEEPER_GUI_H

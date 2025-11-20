@@ -1,4 +1,0 @@
-#ifndef MINESWEEPER_MAIN_H
-#define MINESWEEPER_MAIN_H
-
-#endif // MINESWEEPER_MAIN_H

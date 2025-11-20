@@ -630,7 +630,7 @@ static void save_field_with_increment() {
         f_arr[idx] = FLAG(x, y) ? 1 : 0;
         u_arr[idx] = UNC(x, y) ? 1 : 0;
     }
-    if (save_field_with_state(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
+    if (save_field(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
     } else {
         printf("Saved field and play state to %s\n", filenamebuf);

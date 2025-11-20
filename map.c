@@ -16,7 +16,6 @@ char *map = NULL;
 * De waarden van w en h worden gecheckt of deze mogelijk zijn.
 * Zo ja, worden deze toegekend aan map_w en map_h.
 * We alloceren geheugen voor de standaard map van size map_w * map_h.
-* De map wordt geinitialiseerd met '0' karakters.
 */
 int init_map(int w, int h, int mines) {
     if (w <= 0 || h <= 0) return -1;
@@ -25,33 +24,34 @@ int init_map(int w, int h, int mines) {
     map_mines = mines;
     if (map) free(map);
     map = (char*)malloc((int)map_w * map_h);
-    if (!map) return -1; // memory allocation niet gelukt -> -1
-    for (int i = 0; i < map_w * map_h; ++i) map[i] = '0';
+    if (!map) return -1; // memory allocation niet gelukt -> return -1
     return 0;
 }
 
+// De aanmgemaakte map wordt opgevuld met '0' karakters.
 void create_map() {
     if (map == NULL) init_map(map_w, map_h, map_mines);
-    for (int y = 0; y < map_h; y++) {
-        for (int x = 0; x < map_w; x++) {
-            MAP(x, y) ='0';
+    for (int x = 0; x < map_w; x++) {
+        for (int y = 0; y < map_h; y++) {
+            MAP(x, y) = '0';
         }
     }
 }
 
-
+// Om de map in de console uit te printen.
 void print_map() {
-    for (int y = 0; y < map_h; y++) {
-        for (int x = 0; x < map_w; x++) {
+    for (int x = 0; x < map_w; x++) {
+        for (int y = 0; y < map_h; y++) {
             printf("%c ", MAP(x, y));
         }
         printf("\n");
     }
 }
 
+// Deze functie zal de map opvullen met nummers, rekening houdend met de reeds gelegde mijnen.
 void fill_map() {
-    for (int y = 0; y < map_h; y++) {
-        for (int x = 0; x < map_w; x++) {
+    for (int x = 0; x < map_w; x++) {
+        for (int y = 0; y < map_h; y++) {
             if (MAP(x, y) == 'M') continue;
             int count = 0;
             for (int dy = -1; dy <= 1; dy++) {
@@ -68,8 +68,11 @@ void fill_map() {
     }
 }
 
+/*
+* Na het klikken op een veld, wordt de map aangemaakt en random opgevuld met mijnen.
+* Daarna wordt de fill_map functie aangeroepen om de map verder op te vullen met nummers.
+*/
 void add_mines(int exclude_x, int exclude_y) {
-    
     int placed = 0;
     while (placed < map_mines) {
         int x = rand() % map_w;
@@ -83,6 +86,7 @@ void add_mines(int exclude_x, int exclude_y) {
     fill_map();
 }
 
+// Om de map te dealloceren, nadat het spel afgelopen is.
 void free_map() {
     if (map) {
         free(map);
