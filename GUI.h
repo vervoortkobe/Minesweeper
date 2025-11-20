@@ -18,11 +18,15 @@
 int choose_image_and_window_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h);
 
 void initialize_gui(int window_width, int window_height);
+
 void free_gui();
+
 void draw_window();
+
 void read_input();
 
 int alloc_game_states(void);
+
 void free_game_states(void);
 
 extern int should_continue;

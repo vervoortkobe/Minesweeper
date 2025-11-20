@@ -119,10 +119,10 @@ static int win_remaining = 0;
 static bool show_all = false; // via 'p' key
 static bool *saved_uncovered = NULL;
 
-#define UNC(r, c) (uncovered[(r) * map_w + (c)])
-#define FLAG(r, c) (flagged[(r) * map_w + (c)])
-#define REMOVED(r, c) (removed_cells[(r) * map_w + (c)])
-#define SAVEDUNC(r, c) (saved_uncovered[(r) * map_w + (c)])
+#define UNC(c, r) (uncovered[(r) * map_w + (c)])
+#define FLAG(c, r) (flagged[(r) * map_w + (c)])
+#define REMOVED(c, r) (removed_cells[(r) * map_w + (c)])
+#define SAVEDUNC(c, r) (saved_uncovered[(r) * map_w + (c)])
 
 int alloc_game_states(void) {
     int cells = (int)map_w * (int)map_h;
@@ -148,9 +148,9 @@ void free_game_states(void) {
 static void print_view() {
     for (int y = 0; y < map_h; ++y) {
         for (int x = 0; x < map_w; ++x) {
-            if (UNC(y, x)) {
-                putchar(MAP(y, x));
-            } else if (FLAG(y, x)) {
+            if (UNC(x, y)) {
+                putchar(MAP(x, y));
+            } else if (FLAG(x, y)) {
                 putchar('F');
             } else {
                 putchar('#');
@@ -224,7 +224,7 @@ void read_input() {
             show_all = !show_all;
             if (show_all) {
                 // save previous uncovered state
-                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) SAVEDUNC(y, x) = UNC(y, x);
+                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) SAVEDUNC(x, y) = UNC(x, y);
                 if (!mines_placed) {
                     // place mines without excluding any specific cell
                     add_mines(-1, -1);
@@ -233,13 +233,13 @@ void read_input() {
                 }
                 for (int y = 0; y < map_h; ++y) {
                     for (int x = 0; x < map_w; ++x) {
-                        UNC(y, x) = true;
+                        UNC(x, y) = true;
                     }
                 }
                 printf("Show-all enabled (P pressed)\n");
             } else {
                 // restore previous uncovered state
-                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) UNC(y, x) = SAVEDUNC(y, x);
+                for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) UNC(x, y) = SAVEDUNC(x, y);
                 printf("Show-all disabled (P pressed)\n");
             }
             changed = true;
@@ -278,8 +278,8 @@ void read_input() {
         if (clicked_row >= grid_rows) clicked_row = grid_rows - 1;
 
         if (event.button.button == SDL_BUTTON_RIGHT) {
-            FLAG(clicked_row,clicked_col) = !FLAG(clicked_row,clicked_col);
-            printf("Right-click at (%d,%d) -> cell (%d,%d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_row,clicked_col));
+            FLAG(clicked_col, clicked_row) = !FLAG(clicked_col, clicked_row);
+            printf("Right-click at (%d,%d) -> cell (%d,%d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
             // mark view changed so we print once after handling the event
             changed = true;
             // check win: all mines flagged and no incorrect flags
@@ -287,9 +287,9 @@ void read_input() {
             int total_flags = 0;
             for (int y = 0; y < map_h; ++y) {
                 for (int x = 0; x < map_w; ++x) {
-                    if (FLAG(y, x)) {
+                    if (FLAG(x, y)) {
                         total_flags++;
-                        if (MAP(y, x) == 'M') correct_flags++;
+                        if (MAP(x, y) == 'M') correct_flags++;
                     }
                 }
             }
@@ -303,7 +303,7 @@ void read_input() {
                 win_remaining = map_w * map_h;
                 for (int y = 0; y < map_h; ++y) {
                     for (int x = 0; x < map_w; ++x) {
-                        REMOVED(y, x) = false;
+                        REMOVED(x, y) = false;
                     }
                 }
                 // seed rand for the removal ordering
@@ -318,7 +318,7 @@ void read_input() {
                 mines_placed = true;
                 changed = true;
             }
-            if (MAP(clicked_row,clicked_col) == 'M') {
+            if (MAP(clicked_col, clicked_row) == 'M') {
                 // speler klikte op een mijn -> game over
                 if (!game_lost) {
                     game_lost = true;
@@ -328,15 +328,15 @@ void read_input() {
                     // toon alle mijnen
                     for (int y = 0; y < map_h; ++y) {
                         for (int x = 0; x < map_w; ++x) {
-                            if (MAP(y, x) == 'M') UNC(y, x) = true;
+                            if (MAP(x, y) == 'M') UNC(x, y) = true;
                         }
                     }
                     // uncover ook de mijn waarop geklikt werd
-                    UNC(losing_y, losing_x) = true;
-                    printf("Boom! You clicked a mine at (%d,%d) - you lose.\n", losing_y, losing_x);
+                    UNC(losing_x, losing_y) = true;
+                    printf("Boom! You clicked a mine at (%d,%d) - you lose.\n", losing_x, losing_y);
                     changed = true;
                 }
-            } else if (MAP(clicked_row,clicked_col) == '0') {
+            } else if (MAP(clicked_col, clicked_row) == '0') {
                 int stack_size = map_w * map_h;
                 int stack_x[1000];
                 int stack_y[1000];
@@ -350,17 +350,17 @@ void read_input() {
                     int cx = stack_x[sp];
                     int cy = stack_y[sp];
                     if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h) continue;
-                    if (UNC(cy, cx)) continue;
-                    UNC(cy, cx) = true;
+                    if (UNC(cx, cy)) continue;
+                    UNC(cx, cy) = true;
                     changed = true;
-                    if (MAP(cy, cx) == '0') {
+                    if (MAP(cx, cy) == '0') {
                         for (int dy = -1; dy <= 1; dy++) {
                             for (int dx = -1; dx <= 1; dx++) {
                                 if (dx == 0 && dy == 0) continue;
                                 int nx = cx + dx;
                                 int ny = cy + dy;
                                 if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h) continue;
-                                if (!UNC(ny,nx) && !FLAG(ny,nx)) {
+                                if (!UNC(nx, ny) && !FLAG(nx, ny)) {
                                     stack_x[sp] = nx;
                                     stack_y[sp] = ny;
                                     sp++;
@@ -371,8 +371,8 @@ void read_input() {
                     }
                 }
             } else {
-                if (!UNC(clicked_row,clicked_col)) {
-                    UNC(clicked_row,clicked_col) = true;
+                if (!UNC(clicked_col, clicked_row)) {
+                    UNC(clicked_col, clicked_row) = true;
                     changed = true;
                 }
             }
@@ -412,20 +412,20 @@ void draw_window() {
         for (int col = 0; col < grid_cols; ++col) {
             SDL_Rect rect = { col * cell_w, row * cell_h, cell_w, cell_h };
             // During win animation, removed cells disappear; otherwise render normally
-                if (game_won && REMOVED(row,col)) {
+                if (game_won && REMOVED(col, row)) {
                 continue; // disappeared
             }
 
             // If user asked to show mines, draw them regardless of uncovered state
-            if (show_mines && MAP(row,col) == 'M') {
+            if (show_mines && MAP(col, row) == 'M') {
                 // if win animation is active and cell has been removed, skip drawing
-                    if (game_won && REMOVED(row,col)) continue;
+                    if (game_won && REMOVED(col, row)) continue;
                 SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
                 continue;
             }
 
-            if (UNC(row,col)) {
-                char c = MAP(row,col);
+            if (UNC(col, row)) {
+                char c = MAP(col, row);
                 if (c == 'M') {
                     // If player lost and this is the losing mine, make it blink red every second
                     if (game_lost && row == losing_y && col == losing_x) {
@@ -456,7 +456,7 @@ void draw_window() {
                     SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                 }
             } else {
-                    if (FLAG(row,col) && digit_flagged_texture) {
+                    if (FLAG(col, row) && digit_flagged_texture) {
                     SDL_RenderCopy(renderer, digit_flagged_texture, NULL, &rect);
                 } else if (digit_covered_texture) {
                     SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
@@ -474,8 +474,8 @@ void draw_window() {
             while (tries < 1000 && win_remaining > 0) {
                 int rx = rand() % map_w;
                 int ry = rand() % map_h;
-                if (!REMOVED(ry,rx)) {
-                    REMOVED(ry,rx) = true;
+                if (!REMOVED(rx, ry)) {
+                    REMOVED(rx, ry) = true;
                     win_remaining--;
                     break;
                 }
@@ -627,8 +627,8 @@ static void save_field_with_increment() {
     }
     for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) {
         int idx = y * map_w + x;
-        f_arr[idx] = FLAG(y, x) ? 1 : 0;
-        u_arr[idx] = UNC(y, x) ? 1 : 0;
+        f_arr[idx] = FLAG(x, y) ? 1 : 0;
+        u_arr[idx] = UNC(x, y) ? 1 : 0;
     }
     if (save_field_with_state(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0) {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
@@ -666,15 +666,15 @@ int load_file(const char *filename) {
         int c = 0;
         char *tok = strtok(lines[y], " \t");
         while (tok && c < cols) {
-            MAP(y, c) = tok[0];
-            if (MAP(y, c) == 'M') mines++;
+            MAP(c, y) = tok[0];
+            if (MAP(c, y) == 'M') mines++;
             c++;
             tok = strtok(NULL, " \t");
         }
     }
     map_mines = mines;
     if (alloc_game_states() != 0) { free_lines(lines, rows); free_map(); return -1; }
-    for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(y, x) = false; FLAG(y, x) = false; }
+    for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) { UNC(x, y) = false; FLAG(x, y) = false; }
     if (sep != -1) {
         int state_rows = rows - (sep + 1);
         int use_rows = state_rows < map_rows ? state_rows : map_rows;
@@ -682,8 +682,8 @@ int load_file(const char *filename) {
             int c = 0;
             char *tok = strtok(lines[sep + 1 + y], " \t");
             while (tok && c < cols) {
-                if (tok[0] == 'F') FLAG(y, c) = true;
-                else if (tok[0] == 'U') UNC(y, c) = true;
+                if (tok[0] == 'F') FLAG(c, y) = true;
+                else if (tok[0] == 'U') UNC(c, y) = true;
                 c++;
                 tok = strtok(NULL, " \t");
             }

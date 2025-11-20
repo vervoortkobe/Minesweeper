@@ -10,7 +10,7 @@ void free_map();
 void add_mines(int exclude_x, int exclude_y);
 void fill_map();
 extern char *map;
-#define MAP(r, c) (map[(r) * map_w + (c)])
+#define MAP(c, r) (map[(r) * map_w + (c)])
 void print_map();
 
 #endif //MINESWEEPER_MAP_H
