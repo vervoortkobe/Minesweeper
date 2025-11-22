@@ -102,9 +102,8 @@ int should_continue = 1;
  */
 static SDL_Window *window;
 
-// Verschillende game states
-static bool *uncovered = NULL;
-static bool *flagged = NULL;
+// Per-cell state stored in a linear Field array (see GUI.h)
+static Field *fields = NULL;
 static bool mines_placed = false; // of de mijnen reeds geplaatst zijn via add_mines
 static bool show_mines = false; // via 'b' key
 static bool game_lost = false;
@@ -112,36 +111,31 @@ static int losing_x = -1;
 static int losing_y = -1;
 static uint32_t lose_start_time = 0;
 static bool game_won = false;
-static bool *removed_cells = NULL;
 static uint32_t win_start_time = 0;
 static uint32_t win_last_remove = 0;
 static int win_remaining = 0;
 static bool show_all = false; // via 'p' key
-static bool *saved_uncovered = NULL;
 
-#define UNC(c, r) (uncovered[(r) * map_w + (c)])
-#define FLAG(c, r) (flagged[(r) * map_w + (c)])
-#define REMOVED(c, r) (removed_cells[(r) * map_w + (c)])
-#define SAVEDUNC(c, r) (saved_uncovered[(r) * map_w + (c)])
+/* Field access macros (use COORD_IDX/map_w as width) */
+#define FIELD_AT(c, r) (fields[(r) * map_w + (c)])
+#define UNC(c, r) (FIELD_AT(c, r).uncovered)
+#define FLAG(c, r) (FIELD_AT(c, r).flagged)
+#define REMOVED(c, r) (FIELD_AT(c, r).removed)
+#define SAVEDUNC(c, r) (FIELD_AT(c, r).saved_uncovered)
 
 int alloc_game_states(void) {
     int cells = (int)map_w * (int)map_h;
     // maak de state buffers leeg als ze al bestaan
     free_game_states();
-    uncovered = (bool*)calloc(cells, sizeof(bool));
-    flagged = (bool*)calloc(cells, sizeof(bool));
-    removed_cells = (bool*)calloc(cells, sizeof(bool));
-    saved_uncovered = (bool*)calloc(cells, sizeof(bool));
-    if (!uncovered || !flagged || !removed_cells || !saved_uncovered) return -1;
+    fields = (Field*)calloc(cells, sizeof(Field));
+    if (!fields) return -1;
     return 0;
 }
 
 // free als ze al bestaan
 void free_game_states(void) {
-    free(uncovered);
-    free(flagged);
-    free(removed_cells);
-    free(saved_uncovered);
+    free(fields);
+    fields = NULL;
 }
 
 // Bij elke interactie, wordt het speeldveld in de console geprint.
@@ -226,8 +220,8 @@ void read_input() {
                 // save previous uncovered state
                 for (int y = 0; y < map_h; ++y) for (int x = 0; x < map_w; ++x) SAVEDUNC(x, y) = UNC(x, y);
                 if (!mines_placed) {
-                    // place mines without excluding any specific cell
-                    add_mines(-1, -1);
+                        // place mines without excluding any specific cell
+                        add_mines(NULL);
                     print_map();
                     mines_placed = true;
                 }
@@ -313,7 +307,8 @@ void read_input() {
         } else {
             printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed) {
-                add_mines(clicked_col, clicked_row);
+                Coord exclude = { .x = clicked_col, .y = clicked_row };
+                add_mines(&exclude);
                 print_map();
                 mines_placed = true;
                 changed = true;

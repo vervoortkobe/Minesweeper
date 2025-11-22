@@ -71,12 +71,12 @@ void fill_map() {
 * Na het klikken op een veld, wordt de map aangemaakt en random opgevuld met mijnen.
 * Daarna wordt de fill_map functie aangeroepen om de map verder op te vullen met nummers.
 */
-void add_mines(int exclude_x, int exclude_y) {
+void add_mines(const Coord *exclude) {
     int placed = 0;
     while (placed < map_mines) {
         int x = rand() % map_w;
         int y = rand() % map_h;
-        if (exclude_x >= 0 && x == exclude_x && y == exclude_y) continue;
+        if (exclude && exclude->x >= 0 && x == exclude->x && y == exclude->y) continue;
         if (MAP(x, y) == '0') {
             MAP(x, y) = 'M';
             placed++;

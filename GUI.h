@@ -24,4 +24,16 @@ void free_game_states(void);
 extern int should_continue;
 int load_file(const char *filename);
 
+/* Per-cell state struct. Fields are kept in a linear `Field *fields` array
+ * indexed with `COORD_IDX` from `map.h`.
+ */
+#include <stdbool.h>
+typedef struct {
+	char value;        /* mirror of map value if desired ('M' / '0'..'8') */
+	bool uncovered;
+	bool flagged;
+	bool removed;      /* used by win animation */
+	bool saved_uncovered; /* temporary saved state for show-all */
+} Field;
+
 #endif //MINESWEEPER_GUI_H
