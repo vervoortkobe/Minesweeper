@@ -7,23 +7,22 @@
 int SDL_main(int argc, char *argv[]) {
     /*
     * CliArgs: we instantiëren de cli variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
-    * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error.
+    * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error (zie functie definitie).
     * Zie HOC Slides 4_input_output dia 29 voor perror.
     */
     CLIArgs cli;
     if (parse_args(argc, argv, &cli) != 0) {
-        perror(cli.error_msg);
         return 1;
     }
 
     /*
-    * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven cli.load_file).
+    * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven cli.file).
     * Indien ja, laad de map vanuit het bestand met load_file.
     * Print een eventuele error.
     */
-    if (cli.load_file) {
-        if (load_file(cli.load_file) != 0) {
-           fprintf(stderr, "Failed to load map from %s\n", cli.load_file);
+    if (cli.file) {
+        if (load_file(cli.file) != 0) {
+           fprintf(stderr, "Failed to load map from %s\n", cli.file);
             return 1;
         }
     /*
@@ -55,12 +54,12 @@ int SDL_main(int argc, char *argv[]) {
 
     /*
     * Initialiseer de dimensies van de window en bepaal een geschikte image size.
-    * We doen dit door de functie choose_image_and_window_size aan te roepen.
+    * We doen dit door de functie determine_img_win_size aan te roepen.
     */
-    int chosen_image_size = 0;
+    int img_size = 0;
     int win_w = WINDOW_WIDTH;
     int win_h = WINDOW_HEIGHT;
-    if (choose_image_and_window_size(map_w, map_h, &chosen_image_size, &win_w, &win_h) != 0) {
+    if (determine_img_win_size(map_w, map_h, &img_size, &win_w, &win_h) != 0) {
         // Indien deze functie faalt, gebruiken we de standaard waarden.
         win_w = WINDOW_WIDTH;
         win_h = WINDOW_HEIGHT;

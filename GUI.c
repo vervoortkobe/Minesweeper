@@ -38,7 +38,7 @@ static int current_window_w = WINDOW_WIDTH;
 static int current_window_h = WINDOW_HEIGHT;
 
 // Try candidate sizes then fall back to a computed size that fits the desktop.
-int choose_image_and_window_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h) {
+int determine_img_win_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h) {
     if (!out_image_size || !out_window_w || !out_window_h) return -1;
     if (cols <= 0 || rows <= 0) return -1;
 
