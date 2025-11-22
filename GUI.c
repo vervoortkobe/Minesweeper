@@ -222,8 +222,8 @@ void read_input() {
                 if (!mines_placed) {
                         // place mines without excluding any specific cell
                         add_mines(NULL);
-                    print_map();
-                    mines_placed = true;
+                        print_map();
+                        mines_placed = true;
                 }
                 for (int y = 0; y < map_h; ++y) {
                     for (int x = 0; x < map_w; ++x) {
@@ -306,6 +306,7 @@ void read_input() {
                 Coord exclude = { .x = clicked_col, .y = clicked_row };
                 add_mines(&exclude);
                 print_map();
+                printf("\n");
                 mines_placed = true;
                 changed = true;
             }
@@ -638,7 +639,7 @@ static void save_field_with_increment(void);
 int load_file(const char *filename) {
     char **lines = NULL;
     int rows = 0;
-    if (read_file(filename, &lines, &rows) != 0) return -1;
+    if (read_lines(filename, &lines, &rows) != 0) return -1;
     if (rows == 0) { free_lines(lines, rows); return -1; }
     int sep = -1;
     for (int i = 0; i < rows; ++i) if (lines[i][0] == '\0') { sep = i; break; }

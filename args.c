@@ -11,16 +11,16 @@
 * De mogelijke argumenten zijn:
 * (zie hieronder)
 */
-int parse_args(int argc, char *argv[], Args *args) {
-	if (!args) return -1;
+int parse_args(int argc, char *argv[], Args *out_args) {
+	if (!out_args) return -1;
 	/*
-	* Geef standaardwaarden aan de fields van args.
+	* Geef standaardwaarden aan de fields van out_args.
 	* Deze struct gaat verder gebruikt worden om de geparseerde args uit te lezen.
 	*/
-	args->file = NULL;
-	args->w = -1;
-	args->h = -1;
-	args->m = -1;
+	out_args->file = NULL;
+	out_args->w = -1;
+	out_args->h = -1;
+	out_args->m = -1;
 
 	// CLI arguments: zie HOC Slides 3c_advanced.pdf, vanaf dia 4
 	for (int i = 1; i < argc; ++i) {
@@ -38,7 +38,7 @@ int parse_args(int argc, char *argv[], Args *args) {
 					return 1;
 				}
 				if (i + 1 < argc) {
-					args->file = argv[++i];
+					out_args->file = argv[++i];
 				} else {
 					fprintf(stderr, "Missing filename after -f\n");
 					return 1;
@@ -52,7 +52,7 @@ int parse_args(int argc, char *argv[], Args *args) {
 					return 1;
 				}
 				if (i + 1 < argc) {
-					args->w = atoi(argv[++i]);
+					out_args->w = atoi(argv[++i]);
 				} else {
 					fprintf(stderr, "Missing width after -w\n");
 					return 1;
@@ -66,7 +66,7 @@ int parse_args(int argc, char *argv[], Args *args) {
 					return 1;
 				}
 				if (i + 1 < argc) {
-					args->h = atoi(argv[++i]);
+					out_args->h = atoi(argv[++i]);
 				} else {
 					fprintf(stderr, "Missing height after -h\n");
 					return 1;
@@ -80,7 +80,7 @@ int parse_args(int argc, char *argv[], Args *args) {
 					return 1;
 				}
 				if (i + 1 < argc) {
-					args->m = atoi(argv[++i]);
+					out_args->m = atoi(argv[++i]);
 				} else {
 					fprintf(stderr, "Missing amount of mines after -m\n");
 					return 1;
@@ -94,16 +94,16 @@ int parse_args(int argc, char *argv[], Args *args) {
 	}
 
 	// Je kan -f niet combineren met -w/-h/-m.
-	if (args->file && (args->w != -1 || args->h != -1 || args->m != -1)) {
+	if (out_args->file && (out_args->w != -1 || out_args->h != -1 || out_args->m != -1)) {
 		fprintf(stderr, "Cannot combine -f with -w/-h/-m options\n");
 		return 1;
 	}
 
 	// Check of de waarden van w, h en m geldig zijn, als er geen file wordt meegegeven.
-	if (!args->file && args->w > 0 && args->h > 0 && args->m > 0) {
-		int total = (int)args->w * (int)args->h;
-		if ((int)args->m > total) {
-			fprintf(stderr, "Number of mines (%d) may not exceed number of fields (%d)\n", args->m, total);
+	if (!out_args->file && out_args->w > 0 && out_args->h > 0 && out_args->m > 0) {
+		int total = (int)out_args->w * (int)out_args->h;
+		if ((int)out_args->m > total) {
+			fprintf(stderr, "Number of mines (%d) may not exceed number of fields (%d)\n", out_args->m, total);
 			return 1;
 		}
 	}
