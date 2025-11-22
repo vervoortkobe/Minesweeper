@@ -3,16 +3,6 @@
 #include <string.h>
 #include "filehandler.h"
 
-void writeFile(const char* filename, const char* data) {
-    FILE* file = fopen(filename, "w");
-    if (file != NULL) {
-        fputs(data, file);
-        fclose(file);
-    } else {
-        perror("Error opening file for writing");
-    }
-}
-
 int read_lines(const char *filename, char ***out_lines, int *out_rows) {
     if (!filename || !out_lines || !out_rows) return -1;
     FILE *f = fopen(filename, "r");

@@ -82,7 +82,7 @@ int parse_args(int argc, char *argv[], Args *args) {
 				if (i + 1 < argc) {
 					args->m = atoi(argv[++i]);
 				} else {
-					fprintf(stderr, "Missing amount ofmines after -m\n");
+					fprintf(stderr, "Missing amount of mines after -m\n");
 					return 1;
 				}
 				break;
@@ -100,18 +100,10 @@ int parse_args(int argc, char *argv[], Args *args) {
 	}
 
 	// Check of de waarden van w, h en m geldig zijn, als er geen file wordt meegegeven.
-	if (!args->file) {
-		if (args->w < 0 || args->h < 0) {
-			fprintf(stderr, "Width and height must be > 0\n");
-			return 1;
-		}
-		if (args->m < 0) {
-			fprintf(stderr, "Number of mines must be > 0\n");
-			return 1;
-		}
+	if (!args->file && args->w > 0 && args->h > 0 && args->m > 0) {
 		int total = (int)args->w * (int)args->h;
-		if (args->m > total) {
-			fprintf(stderr, "Number of mines (%i) may not exceed number of fields (%i)\n", args->m, total);
+		if ((int)args->m > total) {
+			fprintf(stderr, "Number of mines (%d) may not exceed number of fields (%d)\n", args->m, total);
 			return 1;
 		}
 	}

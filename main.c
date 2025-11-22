@@ -31,7 +31,7 @@ int SDL_main(int argc, char *argv[]) {
     * Indien ja, dan creëren we een map met init_map en create_map.
     * Anders printen we de error.
     */
-    } else if (args.w > 0 && args.h > 0 && args.m >= 0) {
+    } else if (args.w > 0 && args.h > 0 && args.m > 0) {
         if (init_map(args.w, args.h, args.m) != 0) {
             fprintf(stderr, "Failed to initialize map %dx%d\n", args.w, args.h);
             return 1;

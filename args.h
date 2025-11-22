@@ -2,7 +2,7 @@
 #define MINESWEEPER_ARGS_H
 
 /*
-* We gebruiken en struct om de argumenten via functies door te geven.
+* We gebruiken een struct om de argumenten via functies door te geven.
 * Zie HOC Slides 3b_structures dia 26 voor typedef & struct.
 */
 typedef struct {
