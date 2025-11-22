@@ -3,7 +3,7 @@
 #include <string.h>
 #include "filehandler.h"
 
-int read_lines(const char *filename, char ***out_lines, int *out_rows) {
+int read_file(const char *filename, char ***out_lines, int *out_rows) {
     if (!filename || !out_lines || !out_rows) return -1;
     FILE *f = fopen(filename, "r");
     if (!f) return -1;

@@ -644,7 +644,7 @@ static void save_field_with_increment(void);
 int load_file(const char *filename) {
     char **lines = NULL;
     int rows = 0;
-    if (read_lines(filename, &lines, &rows) != 0) return -1;
+    if (read_file(filename, &lines, &rows) != 0) return -1;
     if (rows == 0) { free_lines(lines, rows); return -1; }
     int sep = -1;
     for (int i = 0; i < rows; ++i) if (lines[i][0] == '\0') { sep = i; break; }
