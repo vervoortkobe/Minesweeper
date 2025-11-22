@@ -252,19 +252,15 @@ void read_input() {
         should_continue = 0;
         break;
     case SDL_MOUSEBUTTONDOWN:
-        /*
-         * De speler heeft met de muis geklikt: met de onderstaande lijn worden de coördinaten in het
-         * het speelveld waar de speler geklikt heeft bewaard in de variabelen mouse_x en mouse_y.
-         */
-        mouse_x = event.button.x;
-        mouse_y = event.button.y;
+    /*
+     * De speler heeft met de muis geklikt: met de onderstaande lijn worden de coördinaten in het
+     * het speelveld waar de speler geklikt heeft bewaard in de variabelen mouse_x en mouse_y.
+     */
+    mouse_x = event.button.x;
+    mouse_y = event.button.y;
 
-    int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = current_window_w / grid_cols;
-    int cell_h = current_window_h / grid_rows;
-
-        int clicked_col = mouse_x / cell_w;
-        int clicked_row = mouse_y / cell_h;
+    int clicked_col = mouse_x / cell_w;
+    int clicked_row = mouse_y / cell_h;
 
         if (clicked_col < 0) clicked_col = 0;
         if (clicked_col >= grid_cols) clicked_col = grid_cols - 1;
@@ -638,8 +634,6 @@ static void save_field_with_increment() {
 static void save_field_with_increment(void);
 
 // Load a game file which may contain an optional state block separated by a blank line.
-// Format supported:
-//  - map only: rows of tokens (M/0..8) separated by spaces
 //  - map + state: same as above, then a blank line, then rows of state tokens per cell: U=uncovered, F=flagged, #=covered
 int load_file(const char *filename) {
     char **lines = NULL;

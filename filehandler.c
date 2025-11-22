@@ -8,20 +8,33 @@ int read_file(const char *filename, char ***out_lines, int *out_rows) {
     FILE *f = fopen(filename, "r");
     if (!f) return -1;
     int cap = 64;
-    char **lines = (char**)malloc(cap * sizeof(char*));
+    char **lines = malloc(cap * sizeof(char*));
     if (!lines) { fclose(f); return -1; }
     char buffer[4096];
     int rows = 0;
     while (fgets(buffer, sizeof(buffer), f)) {
         int len = strlen(buffer);
-        while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r')) { buffer[--len] = '\0'; }
-        if (rows >= (int)cap) {
+        while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r')) buffer[--len] = '\0';
+        if (rows >= cap) {
             cap *= 2;
-            char **tmp = (char**)realloc(lines, cap * sizeof(char*));
-            if (!tmp) { for (int i=0;i<rows;i++) free(lines[i]); free(lines); fclose(f); return -1; }
+            char **tmp = realloc(lines, cap * sizeof(char*));
+            if (!tmp) {
+                for (int i = 0; i < rows; ++i) free(lines[i]);
+                free(lines);
+                fclose(f);
+                return -1;
+            }
             lines = tmp;
         }
-        lines[rows++] = strdup(buffer);
+        char *line = malloc(len + 1);
+        if (!line) {
+            for (int i = 0; i < rows; ++i) free(lines[i]);
+            free(lines);
+            fclose(f);
+            return -1;
+        }
+        memcpy(line, buffer, len + 1);
+        lines[rows++] = line;
     }
     fclose(f);
     *out_lines = lines;
