@@ -10,8 +10,8 @@ typedef struct {
     int w; // -w <breedte>
     int h; // -h <hoogte>
     int m; // -m <mijnen>
-} CLIArgs;
+} Args;
 
-int parse_args(int argc, char *argv[], CLIArgs *out);
+int parse_args(int argc, char *argv[], Args *args);
 
 #endif // MINESWEEPER_ARGS_H

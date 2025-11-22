@@ -6,23 +6,23 @@
 //Beginfunctie van de gehele applicatie. Hierin worden alle andere functies aangeroepen.
 int SDL_main(int argc, char *argv[]) {
     /*
-    * CliArgs: we instantiëren de cli variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
+    * Args: we instantiëren de args variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
     * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error (zie functie definitie).
     * Zie HOC Slides 4_input_output dia 29 voor perror.
     */
-    CLIArgs cli;
-    if (parse_args(argc, argv, &cli) != 0) {
+    Args args;
+    if (parse_args(argc, argv, &args) != 0) {
         return 1;
     }
 
     /*
-    * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven cli.file).
+    * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven args.file).
     * Indien ja, laad de map vanuit het bestand met load_file.
     * Print een eventuele error.
     */
-    if (cli.file) {
-        if (load_file(cli.file) != 0) {
-           fprintf(stderr, "Failed to load map from %s\n", cli.file);
+    if (args.file) {
+        if (load_file(args.file) != 0) {
+           fprintf(stderr, "Failed to load map from %s\n", args.file);
             return 1;
         }
     /*
@@ -31,9 +31,9 @@ int SDL_main(int argc, char *argv[]) {
     * Indien ja, dan creëren we een map met init_map en create_map.
     * Anders printen we de error.
     */
-    } else if (cli.w > 0 && cli.h > 0 && cli.m >= 0) {
-        if (init_map(cli.w, cli.h, cli.m) != 0) {
-            fprintf(stderr, "Failed to initialize map %dx%d\n", cli.w, cli.h);
+    } else if (args.w > 0 && args.h > 0 && args.m >= 0) {
+        if (init_map(args.w, args.h, args.m) != 0) {
+            fprintf(stderr, "Failed to initialize map %dx%d\n", args.w, args.h);
             return 1;
         }
         create_map();

@@ -11,8 +11,12 @@
 * De mogelijke argumenten zijn:
 * (zie hieronder)
 */
-int parse_args(int argc, char *argv[], CLIArgs *args) {
+int parse_args(int argc, char *argv[], Args *args) {
 	if (!args) return -1;
+	/*
+	* Geef standaardwaarden aan de fields van args.
+	* Deze struct gaat verder gebruikt worden om de geparseerde args uit te lezen.
+	*/
 	args->file = NULL;
 	args->w = -1;
 	args->h = -1;
@@ -27,7 +31,7 @@ int parse_args(int argc, char *argv[], CLIArgs *args) {
 		}
 
 		switch (arg[1]) {
-			case 'f':
+			case 'f': // -f <bestand>
 			{
 				if (strcmp(arg, "-f") != 0) {
 					fprintf(stderr, "Unknown argument: %s\n", arg);
@@ -41,7 +45,7 @@ int parse_args(int argc, char *argv[], CLIArgs *args) {
 				}
 				break;
 			}
-			case 'w':
+			case 'w': // -w <breedte>
 			{
 				if (strcmp(arg, "-w") != 0) {
 					fprintf(stderr, "Unknown argument: %s\n", arg);
@@ -55,7 +59,7 @@ int parse_args(int argc, char *argv[], CLIArgs *args) {
 				}
 				break;
 			}
-			case 'h':
+			case 'h': // -h <hoogte>
 			{
 				if (strcmp(arg, "-h") != 0) {
 					fprintf(stderr, "Unknown argument: %s\n", arg);
@@ -69,7 +73,7 @@ int parse_args(int argc, char *argv[], CLIArgs *args) {
 				}
 				break;
 			}
-			case 'm':
+			case 'm': // -m <mijnen>
 			{
 				if (strcmp(arg, "-m") != 0) {
 					fprintf(stderr, "Unknown argument: %s\n", arg);
@@ -78,28 +82,36 @@ int parse_args(int argc, char *argv[], CLIArgs *args) {
 				if (i + 1 < argc) {
 					args->m = atoi(argv[++i]);
 				} else {
-					fprintf(stderr, "Missing mines after -m\n");
+					fprintf(stderr, "Missing amount ofmines after -m\n");
 					return 1;
 				}
 				break;
 			}
-			default:
+			default: // Ongekend argument
 				fprintf(stderr, "Unknown argument: %s\n", arg);
 				return 1;
 		}
 	}
 
-	// Je kan niet -f combineren met -w/-h/-m
+	// Je kan -f niet combineren met -w/-h/-m.
 	if (args->file && (args->w != -1 || args->h != -1 || args->m != -1)) {
 		fprintf(stderr, "Cannot combine -f with -w/-h/-m options\n");
 		return 1;
 	}
 
-	// If width/height/mines given, make sure mines does not exceed total boxes
-	if (!args->file && args->w > 0 && args->h > 0 && args->m >= 0) {
+	// Check of de waarden van w, h en m geldig zijn, als er geen file wordt meegegeven.
+	if (!args->file) {
+		if (args->w < 0 || args->h < 0) {
+			fprintf(stderr, "Width and height must be > 0\n");
+			return 1;
+		}
+		if (args->m < 0) {
+			fprintf(stderr, "Number of mines must be > 0\n");
+			return 1;
+		}
 		int total = (int)args->w * (int)args->h;
-		if ((int)args->m > total) {
-			fprintf(stderr, "Number of mines (%d) cannot exceed number of boxes (%d)\n", args->m, total);
+		if (args->m > total) {
+			fprintf(stderr, "Number of mines (%i) may not exceed number of fields (%i)\n", args->m, total);
 			return 1;
 		}
 	}
