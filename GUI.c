@@ -116,8 +116,6 @@ static int losing_x = -1;
 static int losing_y = -1;
 static uint32_t lose_start_time = 0;
 static bool game_won = false;
-static uint32_t win_start_time = 0;
-static uint32_t win_last_remove = 0;
 static int win_remaining = 0;
 static bool show_all = false; // via 'p' key
 
@@ -188,11 +186,7 @@ static int is_relevant_event(SDL_Event *event)
            (event->type == SDL_QUIT);
 }
 
-/*
- * Vangt de input uit de GUI op. Deze functie is al deels geïmplementeerd, maar je moet die
- * zelf nog afwerken.
- * Je mag natuurlijk alles aanpassen aan deze functie, inclusies return-type en argumenten.
- */
+// Deze functie vangt de input uit de GUI op (muiskliks en het indrukken van toetsen).
 void read_input()
 {
     SDL_Event event;
@@ -239,48 +233,43 @@ void read_input()
         {
             // Tijdelijk uncover alles via 'p' key
             show_all = !show_all;
+            printf("Toggle show_all: %d\n", show_all);
             if (show_all)
             {
-                // save previous uncovered state
-                for (int y = 0; y < map_h; ++y)
-                    for (int x = 0; x < map_w; ++x)
+                // sla tijdelijk vorige uncovered state op
+                for (int x = 0; x < map_w; ++x)
+                    for (int y = 0; y < map_h; ++y)
                         SAVEDUNC(x, y) = UNC(x, y);
+                // Voor de eerste muisklik, zijn er nog geen mijnen geplaatst.
+                // Voordat we alles uncoveren, moeten we dus eerst de mijnen plaatsen.
                 if (!mines_placed)
                 {
-                    // place mines without excluding any specific cell
                     add_mines(NULL);
                     print_map();
                     mines_placed = true;
                 }
-                for (int y = 0; y < map_h; ++y)
-                {
-                    for (int x = 0; x < map_w; ++x)
-                    {
+                // Uncover alles tijdelijk
+                for (int x = 0; x < map_w; ++x)
+                    for (int y = 0; y < map_h; ++y)
                         UNC(x, y) = true;
-                    }
-                }
-                printf("Show-all enabled (P pressed)\n");
             }
             else
             {
-                // restore previous uncovered state
-                for (int y = 0; y < map_h; ++y)
-                    for (int x = 0; x < map_w; ++x)
+                // terugzetten van vorige uncovered state
+                for (int x = 0; x < map_w; ++x)
+                    for (int y = 0; y < map_h; ++y)
                         UNC(x, y) = SAVEDUNC(x, y);
-                printf("Show-all disabled (P pressed)\n");
             }
             changed = true;
         }
         else if (event.key.keysym.sym == SDLK_b)
         {
             show_mines = !show_mines;
-            printf("Toggle show mines: %d\n", show_mines);
-            // mark view changed so we print once after handling the event
+            printf("Toggle show_mines: %d\n", show_mines);
             changed = true;
         }
         else if (event.key.keysym.sym == SDLK_s)
         {
-            // Save the current generated field to an incrementally numbered file
             save_game();
         }
         break;
@@ -290,31 +279,22 @@ void read_input()
         break;
     case SDL_MOUSEBUTTONDOWN:
         /*
-         * De speler heeft met de muis geklikt: met de onderstaande lijn worden de coördinaten in het
-         * het speelveld waar de speler geklikt heeft bewaard in de variabelen mouse_x en mouse_y.
+         * De speler heeft met de muis geklikt:
+         * We slaan de coördinaten van de muisklik op in de variabelen mouse_x en mouse_y.
          */
         mouse_x = event.button.x;
         mouse_y = event.button.y;
 
+        // Bereken de coördinaten van de geklikte cel.
         int clicked_col = mouse_x / cell_w;
         int clicked_row = mouse_y / cell_h;
-
-        if (clicked_col < 0)
-            clicked_col = 0;
-        if (clicked_col >= grid_cols)
-            clicked_col = grid_cols - 1;
-        if (clicked_row < 0)
-            clicked_row = 0;
-        if (clicked_row >= grid_rows)
-            clicked_row = grid_rows - 1;
 
         if (event.button.button == SDL_BUTTON_RIGHT)
         {
             FLAG(clicked_col, clicked_row) = !FLAG(clicked_col, clicked_row);
-            printf("Right-click at (%d, %d) -> cell (%d, %d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
-            // mark view changed so we print once after handling the event
+            printf("Right click at (%d, %d) -> cell (%d, %d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
             changed = true;
-            // check win: all mines flagged and no incorrect flags
+            // check voor win: alle mijnen geflagged en geen foute vlaggen
             int correct_flags = 0;
             int total_flags = 0;
             for (int y = 0; y < map_h; ++y)
@@ -332,11 +312,9 @@ void read_input()
             if (total_flags == map_mines && correct_flags == map_mines)
             {
                 printf("All mines flagged - you win!\n");
-                // start win animation instead of immediately closing
+                // start win animatie
                 game_won = true;
-                win_start_time = SDL_GetTicks();
-                win_last_remove = win_start_time;
-                // initialize removed map and remaining count
+                // verwijder de fields één voor één
                 win_remaining = map_w * map_h;
                 for (int y = 0; y < map_h; ++y)
                 {
@@ -345,16 +323,19 @@ void read_input()
                         REMOVED(x, y) = false;
                     }
                 }
-                // seed rand for the removal ordering
+                // random seed om de fields te verwijderen in random volgorde
+                // Zie: https://wiki.libsdl.org/SDL2/SDL_GetTicks voor SDL_GetTicks
                 srand((unsigned int)SDL_GetTicks());
                 changed = true;
             }
         }
         else
         {
+            // Na de eerste klik, als er nog geen mijnen geplaatst zijn, plaatsen we deze nu.
             printf("Clicked at (%d, %d) -> cell (%d, %d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed)
             {
+                // dit coördinaat uitsluiten bij mijnplaatsing, omdat de speler hier net geklikt heeft
                 Coord exclude = {.x = clicked_col, .y = clicked_row};
                 add_mines(&exclude);
                 print_map();
@@ -372,84 +353,85 @@ void read_input()
                     losing_y = clicked_row;
                     lose_start_time = SDL_GetTicks();
                     // toon alle mijnen
-                    for (int y = 0; y < map_h; ++y)
+                    for (int x = 0; x < map_w; ++x)
                     {
-                        for (int x = 0; x < map_w; ++x)
+                        for (int y = 0; y < map_h; ++y)
                         {
                             if (MAP(x, y) == 'M')
                                 UNC(x, y) = true;
                         }
                     }
-                    // uncover ook de mijn waarop geklikt werd
-                    UNC(losing_x, losing_y) = true;
-                    printf("Boom! You clicked a mine at (%d, %d) - you lose.\n", losing_x, losing_y);
-                    changed = true;
                 }
+                // uncover ook de mijn waarop geklikt werd
+                UNC(losing_x, losing_y) = true;
+                printf("You clicked a mine at (%d, %d) - you lose.\n", losing_x, losing_y);
+                changed = true;
             }
-            else if (MAP(clicked_col, clicked_row) == '0')
+        }
+        else if (MAP(clicked_col, clicked_row) == '0')
+        {
+            int stack_size = map_w * map_h;
+            int stack_x[1000];
+            int stack_y[1000];
+            int sp = 0;
+            // push
+            stack_x[sp] = clicked_col;
+            stack_y[sp] = clicked_row;
+            sp++;
+            while (sp > 0)
             {
-                int stack_size = map_w * map_h;
-                int stack_x[1000];
-                int stack_y[1000];
-                int sp = 0;
-                // push
-                stack_x[sp] = clicked_col;
-                stack_y[sp] = clicked_row;
-                sp++;
-                while (sp > 0)
+                sp--;
+                int cx = stack_x[sp];
+                int cy = stack_y[sp];
+                if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h)
+                    continue;
+                if (UNC(cx, cy))
+                    continue;
+                UNC(cx, cy) = true;
+                changed = true;
+                if (MAP(cx, cy) == '0')
                 {
-                    sp--;
-                    int cx = stack_x[sp];
-                    int cy = stack_y[sp];
-                    if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h)
-                        continue;
-                    if (UNC(cx, cy))
-                        continue;
-                    UNC(cx, cy) = true;
-                    changed = true;
-                    if (MAP(cx, cy) == '0')
+                    for (int dy = -1; dy <= 1; dy++)
                     {
-                        for (int dy = -1; dy <= 1; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
                         {
-                            for (int dx = -1; dx <= 1; dx++)
+                            if (dx == 0 && dy == 0)
+                                continue;
+                            int nx = cx + dx;
+                            int ny = cy + dy;
+                            if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h)
+                                continue;
+                            if (!UNC(nx, ny) && !FLAG(nx, ny))
                             {
-                                if (dx == 0 && dy == 0)
-                                    continue;
-                                int nx = cx + dx;
-                                int ny = cy + dy;
-                                if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h)
-                                    continue;
-                                if (!UNC(nx, ny) && !FLAG(nx, ny))
-                                {
-                                    stack_x[sp] = nx;
-                                    stack_y[sp] = ny;
-                                    sp++;
-                                    if (sp >= 1000)
-                                        sp = 999;
-                                }
+                                stack_x[sp] = nx;
+                                stack_y[sp] = ny;
+                                sp++;
+                                if (sp >= 1000)
+                                    sp = 999;
                             }
                         }
                     }
                 }
             }
-            else
+        }
+        else
+        {
+            if (!UNC(clicked_col, clicked_row))
             {
-                if (!UNC(clicked_col, clicked_row))
-                {
-                    UNC(clicked_col, clicked_row) = true;
-                    changed = true;
-                }
+                UNC(clicked_col, clicked_row) = true;
+                changed = true;
             }
         }
-        break;
     }
+    break;
+}
 
-    if (changed)
-    {
-        print_view();
-    }
+if (changed)
+{
+    print_view();
+}
 
-    return;
+return;
 }
 
 void draw_window()
