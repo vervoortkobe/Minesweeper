@@ -117,6 +117,7 @@ static int losing_y = -1;
 static uint32_t lose_start_time = 0;
 static bool game_won = false;
 static int win_remaining = 0;
+static uint32_t win_last_remove = 0;
 static bool show_all = false; // via 'p' key
 
 // om gemakkelijk de states van een field te checken
@@ -361,77 +362,78 @@ void read_input()
                                 UNC(x, y) = true;
                         }
                     }
+                    // uncover ook de mijn waarop geklikt werd
+                    UNC(losing_x, losing_y) = true;
+                    printf("You clicked a mine at (%d, %d) - you lose.\n", losing_x, losing_y);
+                    changed = true;
                 }
-                // uncover ook de mijn waarop geklikt werd
-                UNC(losing_x, losing_y) = true;
-                printf("You clicked a mine at (%d, %d) - you lose.\n", losing_x, losing_y);
-                changed = true;
             }
-        }
-        else if (MAP(clicked_col, clicked_row) == '0')
-        {
-            int stack_size = map_w * map_h;
-            int stack_x[1000];
-            int stack_y[1000];
-            int sp = 0;
-            // push
-            stack_x[sp] = clicked_col;
-            stack_y[sp] = clicked_row;
-            sp++;
-            while (sp > 0)
+            else if (MAP(clicked_col, clicked_row) == '0')
             {
-                sp--;
-                int cx = stack_x[sp];
-                int cy = stack_y[sp];
-                if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h)
-                    continue;
-                if (UNC(cx, cy))
-                    continue;
-                UNC(cx, cy) = true;
-                changed = true;
-                if (MAP(cx, cy) == '0')
+                int stack_size = map_w * map_h;
+                int stack_x[1000];
+                int stack_y[1000];
+                int sp = 0;
+                // push
+                stack_x[sp] = clicked_col;
+                stack_y[sp] = clicked_row;
+                sp++;
+                while (sp > 0)
                 {
-                    for (int dy = -1; dy <= 1; dy++)
+                    sp--;
+                    int cx = stack_x[sp];
+                    int cy = stack_y[sp];
+                    if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h)
+                        continue;
+                    if (UNC(cx, cy))
+                        continue;
+                    UNC(cx, cy) = true;
+                    changed = true;
+                    if (MAP(cx, cy) == '0')
                     {
-                        for (int dx = -1; dx <= 1; dx++)
+                        for (int dy = -1; dy <= 1; dy++)
                         {
-                            if (dx == 0 && dy == 0)
-                                continue;
-                            int nx = cx + dx;
-                            int ny = cy + dy;
-                            if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h)
-                                continue;
-                            if (!UNC(nx, ny) && !FLAG(nx, ny))
+                            for (int dx = -1; dx <= 1; dx++)
                             {
-                                stack_x[sp] = nx;
-                                stack_y[sp] = ny;
-                                sp++;
-                                if (sp >= 1000)
-                                    sp = 999;
+                                if (dx == 0 && dy == 0)
+                                    continue;
+                                int nx = cx + dx;
+                                int ny = cy + dy;
+                                if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h)
+                                    continue;
+                                if (!UNC(nx, ny) && !FLAG(nx, ny))
+                                {
+                                    stack_x[sp] = nx;
+                                    stack_y[sp] = ny;
+                                    sp++;
+                                    if (sp >= 1000)
+                                        sp = 999;
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-        else
-        {
-            if (!UNC(clicked_col, clicked_row))
+            else
             {
-                UNC(clicked_col, clicked_row) = true;
-                changed = true;
+                if (!UNC(clicked_col, clicked_row))
+                {
+                    UNC(clicked_col, clicked_row) = true;
+                    changed = true;
+                }
             }
         }
+        break;
     }
-    break;
-}
 
-if (changed)
-{
-    print_view();
-}
+    if (changed)
 
-return;
+    {
+
+        print_view();
+    }
+
+    return;
 }
 
 void draw_window()
