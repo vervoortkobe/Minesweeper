@@ -21,23 +21,17 @@ static SDL_Texture *digit_mine_texture = NULL;
 // Instantieer de variabele voor het bijhouden van de display mode.
 static SDL_DisplayMode dm;
 
-// Current window dimensions (set by initialize_window)
+// Standaard window afmetingen
 static int curr_win_w = WINDOW_WIDTH;
 static int curr_win_h = WINDOW_HEIGHT;
 
-// Try candidate sizes then fall back to a computed size that fits the desktop.
+/*
+ * Deze functie bepaalt de beste window en image size op basis van het aantal kolommen en rijen.
+ * Het resultaat wordt via de out-parameters teruggegeven.
+ */
 int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w, int *out_win_h) {
     if (!out_img_size || !out_win_w || !out_win_h) return -1;
     if (cols <= 0 || rows <= 0) return -1;
-
-    // Ensure SDL video subsystem is available to query desktop mode.
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        // SDL init failed; fall back to defaults
-        *out_img_size = DEFAULT_IMAGE_SIZE;
-        *out_win_w = cols * (*out_img_size);
-        *out_win_h = rows * (*out_img_size);
-        return 0;
-    }
 
     if (SDL_GetDesktopDisplayMode(0, &dm) != 0) {
         *out_img_size = DEFAULT_IMAGE_SIZE;
@@ -46,21 +40,26 @@ int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w
         return 0;
     }
 
-    int pref_sizes[] = {100, 75, 50};
+    // voorgestelde afmetingen voor afbeeldingen
+    int pref_sizes[] = { 100, 75, 50 };
     int chosen = -1;
     for (int i = 0; i < 3; ++i) {
-        int s = pref_sizes[i];
-        int ww = cols * s;
-        int hh = rows * s;
-        if (ww <= dm.w && hh <= dm.h) { chosen = s; break; }
+        int size = pref_sizes[i];
+        // window afmetingen worden berekend d.m.v. aantal kolommen/rijen * image size
+        int win_width = cols * size;
+        int win_height = rows * size;
+        if (win_width <= dm.w && win_height <= dm.h) {
+            chosen = size;
+            break;
+        }
     }
     if (chosen == -1) {
-        // none of the presets fit; compute the max possible size that fits
+        // Bereken de maximale window grootte, afhankelijk van het scherm
         int max_w = dm.w / cols;
         int max_h = dm.h / rows;
-        int s = max_w < max_h ? max_w : max_h;
-        if (s < 20) s = 20; // enforce a small minimum
-        chosen = s;
+        int size = max_w < max_h ? max_w : max_h;
+        if (size < 20) size = 20; // minimale grootte
+        chosen = size;
     }
 
     *out_img_size = chosen;
@@ -78,15 +77,14 @@ int mouse_x = 0;
 int mouse_y = 0;
 
 /*
- * Geeft aan of de applicatie moet verdergaan.
- * Dit is waar zolang de gebruiker de applicatie niet wilt afsluiten door op het kruisje te klikken.
+ * Deze variabele geeft aan of de applicatie moet verdergaan.
+ * Dit is true/1 zolang de gebruiker de applicatie niet wilt afsluiten door op het kruisje te klikken.
  */
 int should_continue = 1;
 
 /*
  * Dit is het venster dat getoond zal worden en waarin het speelveld weergegeven wordt.
- * Dit venster wordt aangemaakt bij het initialiseren van de GUI en wordt weer afgebroken
- * wanneer het spel ten einde komt.
+ * Dit venster wordt aangemaakt bij het initialiseren van de GUI en wordt weer afgebroken wanneer het spel ten einde komt.
  */
 static SDL_Window *window;
 
@@ -104,7 +102,7 @@ static uint32_t win_last_remove = 0;
 static int win_remaining = 0;
 static bool show_all = false; // via 'p' key
 
-/* Field access macros (use COORD_IDX/map_w as width) */
+// Field access macros (use COORD_IDX/map_w as width)
 #define FIELD_AT(c, r) (fields[(r) * map_w + (c)])
 #define UNC(c, r) (FIELD_AT(c, r).uncovered)
 #define FLAG(c, r) (FIELD_AT(c, r).flagged)
@@ -478,13 +476,14 @@ void draw_window() {
 }
 
 /*
-* Deze functie initialiseert het venster en alle extra structuren die nodig zijn om het venster te manipuleren.* * Ook wordt de display size van het te gebruiken scherm hier berekend.
-* Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
-* Zie SDL2 documentatie: 
-* - https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode voor SDL_GetDesktopDisplayMode
-* - https://wiki.libsdl.org/SDL2/SDL_Log voor SDL_Log
-* - https://wiki.libsdl.org/SDL2/SDL_GetError voor SDL_GetError
-*/
+ * Deze functie initialiseert het venster en alle extra structuren die nodig zijn om het venster te manipuleren.
+ * Ook wordt de display size van het te gebruiken scherm hier berekend.
+ *  Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
+ * Zie SDL2 documentatie: 
+ * - https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode voor SDL_GetDesktopDisplayMode
+ * - https://wiki.libsdl.org/SDL2/SDL_Log voor SDL_Log
+ * - https://wiki.libsdl.org/SDL2/SDL_GetError voor SDL_GetError
+ */
 void initialize_window(const char *title, int window_width, int window_height) {
         /*
          * Code o.a. gebaseerd op:
@@ -501,33 +500,31 @@ void initialize_window(const char *title, int window_width, int window_height) {
             exit(1);
         }
 
-        /* Maak het venster aan met de gegeven dimensies en de gegeven titel. */
+        // Maak het venster aan met de gegeven dimensies en de gegeven titel.
         window = SDL_CreateWindow(title, (dm.w - window_width) / 2, (dm.h - window_height) / 2, window_width, window_height, SDL_WINDOW_SHOWN);
 
         if (window == NULL) {
-            /* Er ging iets verkeerd bij het initialiseren. */
+            // Er ging iets verkeerd bij het initialiseren.
             printf("Couldn't set screen mode to required dimensions: %s\n", SDL_GetError());
             exit(1);
         }
 
-        /* Initialiseert de renderer. */
+        // Initialiseert de renderer.
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-        /* store current window size for layout calculations */
+        // store current window size for layout calculations
         curr_win_w = window_width;
         curr_win_h = window_height;
-        /* Laat de default-kleur die de renderer in het venster tekent wit zijn. */
+        // Laat de default-kleur die de renderer in het venster tekent wit zijn.
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 }
 
-/*
- * Laad alle afbeeldingen die getoond moeten worden in.
- */
+// Laad alle afbeeldingen die getoond moeten worden in.
 void initialize_textures() {
     /*
-        * Laadt de afbeeldingen in.
-        * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
-        * geeft SDL_LoadBMP een NULL-pointer terug.
-        */
+     * Laad de afbeeldingen in.
+     * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
+     * geeft SDL_LoadBMP een NULL-pointer terug.
+     */
     const char *num_files[9] = {
         "Images/0.bmp","Images/1.bmp","Images/2.bmp",
         "Images/3.bmp","Images/4.bmp","Images/5.bmp",
@@ -551,7 +548,7 @@ void initialize_textures() {
     digit_flagged_texture = SDL_CreateTextureFromSurface(renderer, digit_flagged_surface);
     digit_mine_texture = SDL_CreateTextureFromSurface(renderer, digit_mine_surface);
 
-    /* Dealloceer de tijdelijke SDL_Surfaces die werden aangemaakt. */
+    // Dealloceer de tijdelijke SDL_Surfaces die werden aangemaakt.
     SDL_FreeSurface(digit_covered_surface);
     SDL_FreeSurface(digit_flagged_surface);
     SDL_FreeSurface(digit_mine_surface);
@@ -568,9 +565,7 @@ void initialize_gui(int window_width, int window_height) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 }
 
-/*
- * Dealloceert alle SDL structuren die geïnitialiseerd werden.
- */
+// Dealloceert alle SDL structuren die geïnitialiseerd werden.
 void free_gui() {
     // Dealloceert de afbeeldingen.
     for (int i = 0; i < 9; ++i) {
@@ -604,7 +599,7 @@ static void save_field_with_increment() {
     }
     char filenamebuf[256];
     snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
-    /* build temporary flagged/uncovered arrays as unsigned char arrays for filehandler API */
+    // build temporary flagged/uncovered arrays as unsigned char arrays for filehandler API
     int cells = (int)map_w * (int)map_h;
     unsigned char *f_arr = (unsigned char*)malloc(cells);
     unsigned char *u_arr = (unsigned char*)malloc(cells);

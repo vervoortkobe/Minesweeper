@@ -6,31 +6,31 @@
 //Beginfunctie van de gehele applicatie. Hierin worden alle andere functies aangeroepen.
 int SDL_main(int argc, char *argv[]) {
     /*
-    * Args: we instantiëren de args variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
-    * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error (zie functie definitie).
-    * Zie HOC Slides 4_input_output dia 29 voor perror.
-    */
+     * Args: we instantiëren de args variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
+     * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error (zie functie definitie).
+     * Zie HOC Slides 4_input_output dia 29 voor perror.
+     */
     Args args;
     if (parse_args(argc, argv, &args) != 0) {
         return 1;
     }
 
     /*
-    * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven args.file).
-    * Indien ja, laad de map vanuit het bestand met load_file.
-    * Print een eventuele error.
-    */
+     * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven args.file).
+     * Indien ja, laad de map vanuit het bestand met load_file.
+     * Print een eventuele error.
+     */
     if (args.file) {
         if (load_file(args.file) != 0) {
            fprintf(stderr, "Failed to load map from %s\n", args.file);
             return 1;
         }
     /*
-    * Als er geen bestand wordt meegegeven, wordt er gekeken of er een breedte, hoogte en aantal mijnen worden meegegeven.
-    * Ook wordt er gecheckt of deze waarden geldig zijn (breedte en hoogte groter dan 0, aantal mijnen groter of gelijk aan 0).
-    * Indien ja, dan creëren we een map met init_map en create_map.
-    * Anders printen we de error.
-    */
+     * Als er geen bestand wordt meegegeven, wordt er gekeken of er een breedte, hoogte en aantal mijnen worden meegegeven.
+     * Ook wordt er gecheckt of deze waarden geldig zijn (breedte en hoogte groter dan 0, aantal mijnen groter of gelijk aan 0).
+     * Indien ja, dan creëren we een map met init_map en create_map.
+     * Anders printen we de error.
+     */
     } else if (args.w > 0 && args.h > 0 && args.m > 0) {
         if (init_map(args.w, args.h, args.m) != 0) {
             fprintf(stderr, "Failed to initialize map %dx%d\n", args.w, args.h);
@@ -53,9 +53,9 @@ int SDL_main(int argc, char *argv[]) {
     }
 
     /*
-    * Initialiseer de dimensies van de window en bepaal een geschikte image size.
-    * We doen dit door de functie determine_img_win_size aan te roepen.
-    */
+     * Initialiseer de dimensies van de window en bepaal een geschikte image size.
+     * We doen dit door de functie determine_img_win_size aan te roepen.
+     */
     int img_size = 0;
     int win_w = WINDOW_WIDTH;
     int win_h = WINDOW_HEIGHT;
@@ -65,9 +65,9 @@ int SDL_main(int argc, char *argv[]) {
         win_h = WINDOW_HEIGHT;
     }
     /*
-    * Daarna initialiseren we de GUI met de juiste window breedte en hoogte.
-    * De game loop wordt dan gestart, waarin we blijven tekenen en input lezen zolang should_continue waar is.
-    */
+     * Daarna initialiseren we de GUI met de juiste window breedte en hoogte.
+     * De game loop wordt dan gestart, waarin we blijven tekenen en input lezen zolang should_continue waar is.
+     */
     initialize_gui(win_w, win_h);
     while (should_continue) {
         draw_window();

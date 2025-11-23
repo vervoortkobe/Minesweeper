@@ -4,19 +4,19 @@
 #include "args.h"
 
 /*
-* Deze functie parseert de door de cli meegegeven argumenten.
-* Wanneer een argument als niet juist wordt herkend (of bij een andere fout), 
-* zal de functie een foutcode teruggeven en een foutmelding naar stderr schrijven.
-* Bij succes wordt 0 teruggegeven.
-* De mogelijke argumenten zijn:
-* (zie hieronder)
-*/
+ * Deze functie parseert de door de cli meegegeven argumenten.
+ * Wanneer een argument als niet juist wordt herkend (of bij een andere fout), 
+ * zal de functie een foutcode teruggeven en een foutmelding naar stderr schrijven.
+ * Bij succes wordt 0 teruggegeven.
+ * De mogelijke argumenten zijn:
+ * (zie hieronder)
+ */
 int parse_args(int argc, char *argv[], Args *out_args) {
 	if (!out_args) return -1;
 	/*
-	* Geef standaardwaarden aan de fields van out_args.
-	* Deze struct gaat verder gebruikt worden om de geparseerde args uit te lezen.
-	*/
+	 * Geef standaardwaarden aan de fields van out_args.
+	 * Deze struct gaat verder gebruikt worden om de geparseerde args uit te lezen.
+	 */
 	out_args->file = NULL;
 	out_args->w = -1;
 	out_args->h = -1;

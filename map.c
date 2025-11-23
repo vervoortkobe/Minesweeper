@@ -12,10 +12,10 @@ int map_mines = 10;
 char *map = NULL;
 
 /*
-* De waarden van w en h worden gecheckt of deze mogelijk zijn.
-* Zo ja, worden deze toegekend aan map_w en map_h.
-* We alloceren geheugen voor de standaard map van size map_w * map_h.
-*/
+ * De waarden van w en h worden gecheckt of deze mogelijk zijn.
+ * Zo ja, worden deze toegekend aan map_w en map_h.
+ * We alloceren geheugen voor de standaard map van size map_w * map_h.
+ */
 int init_map(int w, int h, int mines) {
     if (w <= 0 || h <= 0) return -1;
     map_w = w;
@@ -68,9 +68,9 @@ void fill_map() {
 }
 
 /*
-* Na het klikken op een veld, wordt de map aangemaakt en random opgevuld met mijnen.
-* Daarna wordt de fill_map functie aangeroepen om de map verder op te vullen met nummers.
-*/
+ * Na het klikken op een veld, wordt de map aangemaakt en random opgevuld met mijnen.
+ * Daarna wordt de fill_map functie aangeroepen om de map verder op te vullen met nummers.
+ */
 void add_mines(const Coord *exclude) {
     int placed = 0;
     while (placed < map_mines) {
