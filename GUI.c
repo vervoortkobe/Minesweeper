@@ -188,8 +188,6 @@ static int is_relevant_event(SDL_Event *event)
            (event->type == SDL_QUIT);
 }
 
-static void save_field_with_increment(void);
-
 /*
  * Vangt de input uit de GUI op. Deze functie is al deels geïmplementeerd, maar je moet die
  * zelf nog afwerken.
@@ -283,7 +281,7 @@ void read_input()
         else if (event.key.keysym.sym == SDLK_s)
         {
             // Save the current generated field to an incrementally numbered file
-            save_field_with_increment();
+            save_game();
         }
         break;
     case SDL_QUIT:
@@ -601,7 +599,7 @@ void draw_window()
 /*
  * Deze functie initialiseert het venster en alle extra structuren die nodig zijn om het venster te manipuleren.
  * Ook wordt de display size van het te gebruiken scherm hier berekend.
- *  Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
+ * Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
  * Zie SDL2 documentatie:
  * - https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode voor SDL_GetDesktopDisplayMode
  * - https://wiki.libsdl.org/SDL2/SDL_Log voor SDL_Log
@@ -609,13 +607,14 @@ void draw_window()
  */
 void initialize_window(const char *title, int window_width, int window_height)
 {
+    // Vraag de desktop display mode op.
     if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
     {
         SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
         exit(1);
     }
 
-    // Maak het venster aan met de gegeven dimensies en de gegeven titel.
+    // Maak het venster aan met de gegeven dimensies en titel.
     window = SDL_CreateWindow(title, (dm.w - window_width) / 2, (dm.h - window_height) / 2, window_width, window_height, SDL_WINDOW_SHOWN);
 
     if (window == NULL)
@@ -627,7 +626,7 @@ void initialize_window(const char *title, int window_width, int window_height)
 
     // Initialiseert de renderer.
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-    // store current window size for layout calculations
+    // Zet de huidige window afmetingen juist.
     curr_win_w = window_width;
     curr_win_h = window_height;
     // Laat de default-kleur die de renderer in het venster tekent wit zijn.
@@ -638,7 +637,7 @@ void initialize_window(const char *title, int window_width, int window_height)
 void initialize_textures()
 {
     /*
-     * Laad de afbeeldingen in.
+     * Laad de nummer afbeeldingen in.
      * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
      * geeft SDL_LoadBMP een NULL-pointer terug.
      */
@@ -660,6 +659,7 @@ void initialize_textures()
         }
     }
 
+    // Laad de andere afbeeldingen apart in.
     SDL_Surface *digit_covered_surface = SDL_LoadBMP("Images/covered.bmp");
     SDL_Surface *digit_flagged_surface = SDL_LoadBMP("Images/flagged.bmp");
     SDL_Surface *digit_mine_surface = SDL_LoadBMP("Images/mine.bmp");
@@ -708,7 +708,7 @@ void free_gui()
 }
 
 // Save current map to an incrementally numbered file: field_<width>x<height>_<n>.txt
-static void save_field_with_increment()
+static void save_game()
 {
     char filename[256];
     int n = 1;
@@ -757,9 +757,6 @@ static void save_field_with_increment()
     free(f_arr);
     free(u_arr);
 }
-
-// forward declaration for save helper used in read_input
-static void save_field_with_increment(void);
 
 // Load a game file which may contain an optional state block separated by a blank line.
 //  - map + state: same as above, then a blank line, then rows of state tokens per cell: U=uncovered, F=flagged, #=covered

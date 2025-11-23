@@ -23,6 +23,7 @@ int alloc_game_states(void);
 void free_game_states(void);
 extern int should_continue;
 int load_file(const char *filename);
+void save_game();
 
 typedef struct
 {
