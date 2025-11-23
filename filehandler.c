@@ -89,8 +89,10 @@ void free_lines(char **lines, int count) {
 */
 int save_field(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered) {
     if (!filename || !map) return -1;
+    // We openen het aangemaakt bestand voor writing.
     FILE *out = fopen(filename, "w");
     if (!out) return -1;
+    // We schrijven het covered speelveld (map) naar het bestand.
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; ++y) {
             fputc(map[y * w + x], out);
@@ -99,6 +101,7 @@ int save_field(const char *filename, int w, int h, const char *map, const unsign
         fputc('\n', out);
     }
     fputc('\n', out);
+    // We schrijven het uncovered speelveld naar het bestand.
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; ++y) {
             int i = y * w + x;
