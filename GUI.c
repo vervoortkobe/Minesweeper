@@ -292,10 +292,18 @@ void read_input()
 
         if (event.button.button == SDL_BUTTON_RIGHT)
         {
+            /*
+             * Rechter muisknop: toggle een vlag op de cel.
+             * FLAG(...) wordt aan/uit gezet.
+             */
             FLAG(clicked_col, clicked_row) = !FLAG(clicked_col, clicked_row);
             printf("Right click at (%d, %d) -> cell (%d, %d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
             changed = true;
-            // check voor win: alle mijnen geflagged en geen foute vlaggen
+
+            /*
+             * Controleer of de speler gewonnen heeft door alle mijnen correct te vlaggen.
+             * We tellen het totaal aan vlaggen en hoeveel daarvan op een mijn staan.
+             */
             int correct_flags = 0;
             int total_flags = 0;
             for (int y = 0; y < map_h; ++y)
@@ -310,29 +318,31 @@ void read_input()
                     }
                 }
             }
+            // Als het aantal vlaggen gelijk is aan het aantal mijnen en alle vlaggen correct zijn -> win
             if (total_flags == map_mines && correct_flags == map_mines)
             {
                 printf("All mines flagged - you win!\n");
-                // start win animatie
+                // Start win-animatie: markeer game_won en initialiseer verwijder-lijst
                 game_won = true;
-                // verwijder de fields één voor één
                 win_remaining = map_w * map_h;
                 for (int y = 0; y < map_h; ++y)
                 {
                     for (int x = 0; x < map_w; ++x)
                     {
-                        REMOVED(x, y) = false;
+                        REMOVED(x, y) = false; // nog niet verwijderd tijdens animatie
                     }
                 }
-                // random seed om de fields te verwijderen in random volgorde
-                // Zie: https://wiki.libsdl.org/SDL2/SDL_GetTicks voor SDL_GetTicks
+                // Seed de RNG met huidige ticks zodat de verwijdervolgorde random is
                 srand((unsigned int)SDL_GetTicks());
                 changed = true;
             }
         }
         else
         {
-            // Na de eerste klik, als er nog geen mijnen geplaatst zijn, plaatsen we deze nu.
+            /*
+             * Linker muisknop: ontdek cel.
+             * Bij de eerste klik plaatsen we eerst de mijnen (exclusief de aangeklikte cel).
+             */
             printf("Clicked at (%d, %d) -> cell (%d, %d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed)
             {
@@ -370,44 +380,52 @@ void read_input()
             }
             else if (MAP(clicked_col, clicked_row) == '0')
             {
-                int stack_size = map_w * map_h;
-                int stack_x[1000];
-                int stack_y[1000];
-                int sp = 0;
-                // push
-                stack_x[sp] = clicked_col;
-                stack_y[sp] = clicked_row;
-                sp++;
-                while (sp > 0)
+                // Wanneer een lege cel ('0') wordt aangeklikt, worden de naburige cellen ook automatisch ontdekt.
+                // We doen dit d.m.v. twee aparte arrays die als stack fungeren.
+                int size = (int)map_w * (int)map_h;
+                int stack_x[size];
+                int stack_y[size];
+                int i = 0;
+                // We push de startcellen op de stacks.
+                stack_x[i] = clicked_col;
+                stack_y[i] = clicked_row;
+                i++;
+
+                while (i > 0)
                 {
-                    sp--;
-                    int cx = stack_x[sp];
-                    int cy = stack_y[sp];
-                    if (cx < 0 || cx >= map_w || cy < 0 || cy >= map_h)
+                    // iterateer zolang er cellen in de stack zitten
+                    i--;
+                    int coord_x = stack_x[i];
+                    int coord_y = stack_y[i];
+                    // bounds check
+                    if (coord_x < 0 || coord_x >= map_w || coord_y < 0 || coord_y >= map_h)
                         continue;
-                    if (UNC(cx, cy))
+                    // als de cel al uncovered is, slaan we ze over
+                    if (UNC(coord_x, coord_y))
                         continue;
-                    UNC(cx, cy) = true;
+                    // uncover de cel
+                    UNC(coord_x, coord_y) = true;
                     changed = true;
-                    if (MAP(cx, cy) == '0')
+                    // als de cel ook een '0' is, push alle niet-onthulde en niet-gevlagde buren
+                    if (MAP(coord_x, coord_y) == '0')
                     {
-                        for (int dy = -1; dy <= 1; dy++)
+                        // push alle 8 buren
+                        for (int diag_x = -1; diag_x <= 1; diag_x++)
                         {
-                            for (int dx = -1; dx <= 1; dx++)
+                            for (int diag_y = -1; diag_y <= 1; diag_y++)
                             {
-                                if (dx == 0 && dy == 0)
+                                if (diag_x == 0 && diag_y == 0)
                                     continue;
-                                int nx = cx + dx;
-                                int ny = cy + dy;
-                                if (nx < 0 || nx >= map_w || ny < 0 || ny >= map_h)
+                                int neigh_x = coord_x + diag_x;
+                                int neigh_y = coord_y + diag_y;
+                                if (neigh_x < 0 || neigh_x >= map_w || neigh_y < 0 || neigh_y >= map_h)
                                     continue;
-                                if (!UNC(nx, ny) && !FLAG(nx, ny))
+                                if (!UNC(neigh_x, neigh_y) && !FLAG(neigh_x, neigh_y))
                                 {
-                                    stack_x[sp] = nx;
-                                    stack_y[sp] = ny;
-                                    sp++;
-                                    if (sp >= 1000)
-                                        sp = 999;
+                                    // push de buurcel
+                                    stack_x[i] = neigh_x;
+                                    stack_y[i] = neigh_y;
+                                    i++;
                                 }
                             }
                         }
@@ -416,6 +434,7 @@ void read_input()
             }
             else
             {
+                // uncover een normale nummer cel
                 if (!UNC(clicked_col, clicked_row))
                 {
                     UNC(clicked_col, clicked_row) = true;
@@ -427,12 +446,9 @@ void read_input()
     }
 
     if (changed)
-
     {
-
         print_view();
     }
-
     return;
 }
 
