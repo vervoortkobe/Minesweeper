@@ -708,7 +708,7 @@ void free_gui()
 }
 
 // Save current map to an incrementally numbered file: field_<width>x<height>_<n>.txt
-static void save_game()
+void save_game()
 {
     char filename[256];
     int n = 1;
