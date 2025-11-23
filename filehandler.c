@@ -4,8 +4,8 @@
 #include "filehandler.h"
 
 /*
-* Deze functie leest alle lijnen van een bestand uit en slaat deze op in een dynamisch gealloceerde array van strings.
-* De gelezen lijnen worden teruggegeven via de out_lines parameter, en het aantal gelezen lijnen via out_rows.
+* Deze functie leest alle lijnen van een bestand uit en slaat deze op in een dynamisch gealloceerde array van chars.
+* De gelezen lijnen worden teruggegeven via de out_lines en het aantal lijnen via out_count.
 * De caller is verantwoordelijk voor het vrijgeven van het geheugen gebruikt voor de lijnen via free_lines.
 * Bij succes wordt 0 teruggegeven, bij een fout -1.
 * Zie HOC Slides 4_input_output:
@@ -19,23 +19,28 @@
 * Zie HOC Slides 3c_advanced:
 * - dia 49 voor memcpy
 */
-int read_lines(const char *filename, char ***out_lines, int *out_rows) {
-    if (!filename || !out_lines || !out_rows) return -1;
+int read_lines(const char *filename, char ***out_lines, int *out_count) {
+    if (!filename || !out_lines || !out_count) return -1;
     FILE *f = fopen(filename, "r");
     if (!f) return -1;
-    int cap = 64;
+    int cap = 22; // max aantal lijnen die gelezen worden
+    // We alloceren geheugen voor het inlezen van 22 lijnen van char arrays.
     char **lines = malloc(cap * sizeof(char*));
-    if (!lines) { fclose(f); return -1; }
+    if (!lines) {
+        fclose(f);
+        return -1;
+    }
     char buffer[4096];
-    int rows = 0;
+    int count = 0;
     while (fgets(buffer, sizeof(buffer), f)) {
         int len = strlen(buffer);
-        while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r')) buffer[--len] = '\0';
-        if (rows >= cap) {
+        while (len > 0 && (buffer[len - 1] == '\n' || buffer[len-1] == '\r'))
+        buffer[--len] = '\0';
+        if (count >= cap) {
             cap *= 2;
             char **tmp = realloc(lines, cap * sizeof(char*));
             if (!tmp) {
-                for (int i = 0; i < rows; ++i) free(lines[i]);
+                for (int i = 0; i < count; ++i) free(lines[i]);
                 free(lines);
                 fclose(f);
                 return -1;
@@ -44,24 +49,27 @@ int read_lines(const char *filename, char ***out_lines, int *out_rows) {
         }
         char *line = malloc(len + 1);
         if (!line) {
-            for (int i = 0; i < rows; ++i) free(lines[i]);
+            for (int i = 0; i < count; ++i) free(lines[i]);
             free(lines);
             fclose(f);
             return -1;
         }
         memcpy(line, buffer, len + 1);
-        lines[rows++] = line;
+        lines[count++] = line;
     }
     fclose(f);
     *out_lines = lines;
-    *out_rows = rows;
+    *out_count = count;
     return 0;
 }
 
 // Dealloceer het geheugen gebruikt voor het inlezen van de "lines" uit een bestand.
-void free_lines(char **lines, int rows) {
+void free_lines(char **lines, int count) {
     if (!lines) return;
-    for (int i = 0; i < rows; ++i) if (lines[i]) free(lines[i]);
+    for (int i = 0; i < count; ++i) {
+        if (lines[i]) 
+            free(lines[i]);
+    }
     free(lines);
 }
 
@@ -87,9 +95,18 @@ int save_field(const char *filename, int w, int h, const char *map, const unsign
     for (int x = 0; x < w; ++x) {
         for (int y = 0; y < h; ++y) {
             int i = y * w + x;
-            if (flagged && flagged[i]) { fputc('F', out); fputc(' ', out); }
-            else if (uncovered && uncovered[i]) { fputc('U', out); fputc(' ', out); }
-            else { fputc('#', out); fputc(' ', out); }
+            if (flagged && flagged[i]) {
+                fputc('F', out);
+                fputc(' ', out);
+            }
+            else if (uncovered && uncovered[i]) {
+                fputc('U', out);
+                fputc(' ', out);
+            }
+            else {
+                fputc('#', out);
+                fputc(' ', out);
+            }
         }
         fputc('\n', out);
     }
