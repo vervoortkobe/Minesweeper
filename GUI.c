@@ -19,24 +19,12 @@ static SDL_Texture *digit_covered_texture = NULL;
 static SDL_Texture *digit_flagged_texture = NULL;
 static SDL_Texture *digit_mine_texture = NULL;
 
-static SDL_DisplayMode dm;
-int calcDisplaySize() {
-    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
-    {
-        SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
-        return 1;
-    }
-
-    int w, h;
-    w = dm.w;
-    h = dm.h;
-    return 0;
-}
-
 // Current window dimensions (set by initialize_window)
 static int current_window_w = WINDOW_WIDTH;
 static int current_window_h = WINDOW_HEIGHT;
 
+
+static SDL_DisplayMode dm;
 // Try candidate sizes then fall back to a computed size that fits the desktop.
 int determine_img_win_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h) {
     if (!out_image_size || !out_window_w || !out_window_h) return -1;
@@ -51,6 +39,11 @@ int determine_img_win_size(int cols, int rows, int *out_image_size, int *out_win
         return 0;
     }
 
+/*
+* Deze functie berekent de display size van het gebruikte scherm.
+* Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
+* Zie SDL2 documentatie: https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode
+*/
     if (SDL_GetDesktopDisplayMode(0, &dm) != 0) {
         *out_image_size = DEFAULT_IMAGE_SIZE;
         *out_window_w = cols * (*out_image_size);
@@ -269,7 +262,7 @@ void read_input() {
 
         if (event.button.button == SDL_BUTTON_RIGHT) {
             FLAG(clicked_col, clicked_row) = !FLAG(clicked_col, clicked_row);
-            printf("Right-click at (%d,%d) -> cell (%d,%d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
+            printf("Right-click at (%d, %d) -> cell (%d, %d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
             // mark view changed so we print once after handling the event
             changed = true;
             // check win: all mines flagged and no incorrect flags
@@ -301,7 +294,7 @@ void read_input() {
                 changed = true;
             }
         } else {
-            printf("Clicked at (%d,%d) -> cell (%d,%d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
+            printf("Clicked at (%d, %d) -> cell (%d, %d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed) {
                 Coord exclude = { .x = clicked_col, .y = clicked_row };
                 add_mines(&exclude);
@@ -325,7 +318,7 @@ void read_input() {
                     }
                     // uncover ook de mijn waarop geklikt werd
                     UNC(losing_x, losing_y) = true;
-                    printf("Boom! You clicked a mine at (%d,%d) - you lose.\n", losing_x, losing_y);
+                    printf("Boom! You clicked a mine at (%d, %d) - you lose.\n", losing_x, losing_y);
                     changed = true;
                 }
             } else if (MAP(clicked_col, clicked_row) == '0') {
