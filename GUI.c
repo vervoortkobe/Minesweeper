@@ -8,8 +8,8 @@
 #include "filehandler.h"
 
 /*
- * Deze renderer wordt gebruikt om figuren in het venster te tekenen. De renderer
- * wordt geïnitialiseerd in de initialize_window-functie.
+ * Deze renderer wordt gebruikt om figuren in het venster te tekenen.
+ * De renderer wordt geïnitialiseerd in de initialize_window-functie.
  */
 static SDL_Renderer *renderer;
 
@@ -18,36 +18,31 @@ static SDL_Texture *digit_textures[9] = { NULL };
 static SDL_Texture *digit_covered_texture = NULL;
 static SDL_Texture *digit_flagged_texture = NULL;
 static SDL_Texture *digit_mine_texture = NULL;
+// Instantieer de variabele voor het bijhouden van de display mode.
+static SDL_DisplayMode dm;
 
 // Current window dimensions (set by initialize_window)
-static int current_window_w = WINDOW_WIDTH;
-static int current_window_h = WINDOW_HEIGHT;
+static int curr_win_w = WINDOW_WIDTH;
+static int curr_win_h = WINDOW_HEIGHT;
 
-
-static SDL_DisplayMode dm;
 // Try candidate sizes then fall back to a computed size that fits the desktop.
-int determine_img_win_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h) {
-    if (!out_image_size || !out_window_w || !out_window_h) return -1;
+int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w, int *out_win_h) {
+    if (!out_img_size || !out_win_w || !out_win_h) return -1;
     if (cols <= 0 || rows <= 0) return -1;
 
     // Ensure SDL video subsystem is available to query desktop mode.
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         // SDL init failed; fall back to defaults
-        *out_image_size = DEFAULT_IMAGE_SIZE;
-        *out_window_w = cols * (*out_image_size);
-        *out_window_h = rows * (*out_image_size);
+        *out_img_size = DEFAULT_IMAGE_SIZE;
+        *out_win_w = cols * (*out_img_size);
+        *out_win_h = rows * (*out_img_size);
         return 0;
     }
 
-/*
-* Deze functie berekent de display size van het gebruikte scherm.
-* Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
-* Zie SDL2 documentatie: https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode
-*/
     if (SDL_GetDesktopDisplayMode(0, &dm) != 0) {
-        *out_image_size = DEFAULT_IMAGE_SIZE;
-        *out_window_w = cols * (*out_image_size);
-        *out_window_h = rows * (*out_image_size);
+        *out_img_size = DEFAULT_IMAGE_SIZE;
+        *out_win_w = cols * (*out_img_size);
+        *out_win_h = rows * (*out_img_size);
         return 0;
     }
 
@@ -68,9 +63,9 @@ int determine_img_win_size(int cols, int rows, int *out_image_size, int *out_win
         chosen = s;
     }
 
-    *out_image_size = chosen;
-    *out_window_w = cols * chosen;
-    *out_window_h = rows * chosen;
+    *out_img_size = chosen;
+    *out_win_w = cols * chosen;
+    *out_win_h = rows * chosen;
 
     return 0;
 }
@@ -175,8 +170,8 @@ void read_input() {
     SDL_Event event;
     bool changed = false;
     int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = current_window_w / grid_cols;
-    int cell_h = current_window_h / grid_rows;
+    int cell_w = curr_win_w / grid_cols;
+    int cell_h = curr_win_h / grid_rows;
 
     /*
      * Handelt alle input uit de GUI af.
@@ -374,8 +369,8 @@ void read_input() {
 
 void draw_window() {
     int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = current_window_w / grid_cols;
-    int cell_h = current_window_h / grid_rows;
+    int cell_w = curr_win_w / grid_cols;
+    int cell_h = curr_win_h / grid_rows;
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
@@ -483,40 +478,49 @@ void draw_window() {
 }
 
 /*
- * Initialiseert het venster en alle extra structuren die nodig zijn om het venster te manipuleren.
- */
+* Deze functie initialiseert het venster en alle extra structuren die nodig zijn om het venster te manipuleren.* * Ook wordt de display size van het te gebruiken scherm hier berekend.
+* Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
+* Zie SDL2 documentatie: 
+* - https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode voor SDL_GetDesktopDisplayMode
+* - https://wiki.libsdl.org/SDL2/SDL_Log voor SDL_Log
+* - https://wiki.libsdl.org/SDL2/SDL_GetError voor SDL_GetError
+*/
 void initialize_window(const char *title, int window_width, int window_height) {
         /*
          * Code o.a. gebaseerd op:
          * http://lazyfoo.net/tutorials/SDL/02_getting_an_image_on_the_screen/index.php
          */
         if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-                printf("Could not initialize SDL: %s\n", SDL_GetError());
-                exit(1);
+            printf("Could not initialize SDL: %s\n", SDL_GetError());
+            exit(1);
         }
 
-        calcDisplaySize();
+        if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
+        {
+            SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
+            exit(1);
+        }
 
         /* Maak het venster aan met de gegeven dimensies en de gegeven titel. */
         window = SDL_CreateWindow(title, (dm.w - window_width) / 2, (dm.h - window_height) / 2, window_width, window_height, SDL_WINDOW_SHOWN);
 
         if (window == NULL) {
-                /* Er ging iets verkeerd bij het initialiseren. */
-                printf("Couldn't set screen mode to required dimensions: %s\n", SDL_GetError());
-                exit(1);
+            /* Er ging iets verkeerd bij het initialiseren. */
+            printf("Couldn't set screen mode to required dimensions: %s\n", SDL_GetError());
+            exit(1);
         }
 
         /* Initialiseert de renderer. */
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
         /* store current window size for layout calculations */
-        current_window_w = window_width;
-        current_window_h = window_height;
+        curr_win_w = window_width;
+        curr_win_h = window_height;
         /* Laat de default-kleur die de renderer in het venster tekent wit zijn. */
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 }
 
 /*
- * Laadt alle afbeeldingen die getoond moeten worden in.
+ * Laad alle afbeeldingen die getoond moeten worden in.
  */
 void initialize_textures() {
     /*
