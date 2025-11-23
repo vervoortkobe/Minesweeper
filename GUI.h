@@ -24,12 +24,13 @@ void free_game_states(void);
 extern int should_continue;
 int load_file(const char *filename);
 
-typedef struct {
-	char value;
-	bool uncovered;
-	bool flagged;
-	bool removed;
-	bool saved_uncovered;
+typedef struct
+{
+    char value;
+    bool uncovered;
+    bool flagged;
+    bool removed;
+    bool saved_uncovered;
 } Field;
 
-#endif //MINESWEEPER_GUI_H
+#endif // MINESWEEPER_GUI_H
