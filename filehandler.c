@@ -4,10 +4,8 @@
 #include "filehandler.h"
 
 /*
-* Deze functie leest alle lijnen van een bestand uit en slaat deze op in een dynamisch gealloceerde array van chars.
+* Deze functie leest alle lijnen van een bestand uit en slaat deze op in een dynamisch gealloceerde array van char pointers.
 * De gelezen lijnen worden teruggegeven via de out_lines en het aantal lijnen via out_count.
-* De caller is verantwoordelijk voor het vrijgeven van het geheugen gebruikt voor de lijnen via free_lines.
-* Bij succes wordt 0 teruggegeven, bij een fout -1.
 * Zie HOC Slides 4_input_output:
 * - dia 16 voor FILE
 * - dia 58 voor fopen
@@ -23,43 +21,52 @@ int read_lines(const char *filename, char ***out_lines, int *out_count) {
     if (!filename || !out_lines || !out_count) return -1;
     FILE *f = fopen(filename, "r");
     if (!f) return -1;
+    // We alloceren geheugen voor het inlezen van 22 lijnen van char arrays (pointers).
     int cap = 22; // max aantal lijnen die gelezen worden
-    // We alloceren geheugen voor het inlezen van 22 lijnen van char arrays.
     char **lines = malloc(cap * sizeof(char*));
     if (!lines) {
         fclose(f);
         return -1;
     }
-    char buffer[4096];
+
+    // buffer voor het opslaan van een lijn
+    // elke lijn heeft max 22 chars + null terminator
+    char buffer[23];
+    // aantal gelezen lijnen
     int count = 0;
+    // We lezen de lijnen uit het bestand via fgets.
     while (fgets(buffer, sizeof(buffer), f)) {
+        /*
+        * In een bestand zijn telkens 2 speelvelden opgeslagen (covered en uncovered).
+        * Deze speelvelden worden gescheiden door een lege lijn.
+        * Elke lijn van een speelveld heeft een newline character op het einde.
+        * Om op de juiste manier een lijn te lezen, moeten we dus de eind terminators verwijderen.
+        */
         int len = strlen(buffer);
         while (len > 0 && (buffer[len - 1] == '\n' || buffer[len-1] == '\r'))
-        buffer[--len] = '\0';
-        if (count >= cap) {
-            cap *= 2;
-            char **tmp = realloc(lines, cap * sizeof(char*));
-            if (!tmp) {
-                for (int i = 0; i < count; ++i) free(lines[i]);
-                free(lines);
-                fclose(f);
-                return -1;
-            }
-            lines = tmp;
-        }
-        char *line = malloc(len + 1);
+            buffer[--len] = '\0';
+
+        // We alloceren geheugen voor het opslaan van de gelezen lijn.
+        char *line = malloc(len + 1); // + 1 voor de null terminator
         if (!line) {
-            for (int i = 0; i < count; ++i) free(lines[i]);
+            for (int i = 0; i < count; ++i) {
+                free(lines[i]);
+            }
             free(lines);
             fclose(f);
             return -1;
         }
+
+        // We kopiëren de gelezen lijn naar het gealloceerde geheugen van line.
         memcpy(line, buffer, len + 1);
+        // We slaan de lijn op in de lines array.
         lines[count++] = line;
     }
+
     fclose(f);
     *out_lines = lines;
     *out_count = count;
+
     return 0;
 }
 
