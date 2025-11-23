@@ -21,15 +21,6 @@ static SDL_Texture *digit_mine_texture = NULL;
 
 // Instantieer de variabele voor het bijhouden van de display mode.
 static SDL_DisplayMode dm;
-int calc_display_size()
-{
-    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
-    {
-        SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
-        return 1;
-    }
-    return 0;
-}
 
 // Standaard window afmetingen
 static int curr_win_w = WINDOW_WIDTH;
@@ -46,14 +37,14 @@ int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w
     if (cols <= 0 || rows <= 0)
         return -1;
 
-    // Ensure SDL video subsystem is available to query desktop mode.
+    /*
+     * Code o.a. gebaseerd op:
+     * http://lazyfoo.net/tutorials/SDL/02_getting_an_image_on_the_screen/index.php
+     */
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
-        // SDL init failed; fall back to defaults
-        *out_img_size = DEFAULT_IMAGE_SIZE;
-        *out_win_w = cols * (*out_img_size);
-        *out_win_h = rows * (*out_img_size);
-        return 0;
+        printf("Could not initialize SDL: %s\n", SDL_GetError());
+        return 1;
     }
 
     if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
@@ -143,7 +134,7 @@ int alloc_game_states(void)
     // maak de state buffers leeg als ze al bestaan
     free_game_states();
     // alloceer geheugen voor de fields
-    fields = (Field *)malloc(cells * sizeof(Field));
+    fields = (Field *)calloc((size_t)cells, sizeof(Field));
     if (!fields)
         return -1;
     return 0;
@@ -618,17 +609,11 @@ void draw_window()
  */
 void initialize_window(const char *title, int window_width, int window_height)
 {
-    /*
-     * Code o.a. gebaseerd op:
-     * http://lazyfoo.net/tutorials/SDL/02_getting_an_image_on_the_screen/index.php
-     */
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
     {
-        printf("Could not initialize SDL: %s\n", SDL_GetError());
+        SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
         exit(1);
     }
-
-    calc_display_size();
 
     // Maak het venster aan met de gegeven dimensies en de gegeven titel.
     window = SDL_CreateWindow(title, (dm.w - window_width) / 2, (dm.h - window_height) / 2, window_width, window_height, SDL_WINDOW_SHOWN);
