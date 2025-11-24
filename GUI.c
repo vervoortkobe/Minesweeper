@@ -710,13 +710,15 @@ void free_gui()
 // Sla het huidige speelveld op in een genummerd bestand met naam: field_<width>x<height>_<n>.txt
 void save_game()
 {
-    char filename[256];
+    char filenamebuf[256];
     int n = 1;
+    // Blijf proberen tot een geldige bestandsnaam is gevonden.
     while (1)
     {
-        snprintf(filename, sizeof(filename), "field_%dx%d_%d.txt", map_w, map_h, n);
-        // De functie controleert of het doelbestand al bestaat door te proberen het te openen.
-        FILE *f = fopen(filename, "r");
+        snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
+        // De functie controleert of het bestand al bestaat door het te proberen openen.
+        FILE *f = fopen(filenamebuf, "r");
+        // Als de bestandsnaam al is ingenomen, sluiten we het bestand en incrementen we de counter n.
         if (f)
         {
             fclose(f);
@@ -725,43 +727,40 @@ void save_game()
         }
         break;
     }
-    char filenamebuf[256];
-    snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
-    // build temporary flagged/uncovered arrays as unsigned char arrays for filehandler API
-    // Bouwt twee tijdelijke buffers (unsigned char) van grootte map_w * map_h voor vlaggen
-    // *en ongedekte cellen.Deze buffers worden vrijgegeven aan het eind van de functie.int cells = (int)map_w * (int)map_h;
-    unsigned char *f_arr = (unsigned char *)malloc(cells);
-    unsigned char *u_arr = (unsigned char *)malloc(cells);
+    // Er wordt geheugen gealloceerd voor twee tijdelijke arrays van char pointers.
+    int cells = (int)map_w * (int)map_h;
+    char *f_arr = (char *)malloc(cells); // Deze houdt de status van "flagged" per cel bij.
+    char *u_arr = (char *)malloc(cells); // Deze houdt de status van "uncovered" per cel bij.
     if (!f_arr || !u_arr)
     {
         if (f_arr)
             free(f_arr);
         if (u_arr)
             free(u_arr);
-        // Bij geheugenallocatiefouten wordt een perror() uitgevoerd en wordt de functie zonder
-        // schrijven afgebroken.
-        perror("Out of memory while saving");
+        perror("Out of memory error!");
         return;
     }
-    // Voor elk cel wordt 1 byte gebruikt in de tijdelijke arrays: 1 = gezet, 0 = niet gezet.
-    for (int y = 0; y < map_h; ++y)
-        for (int x = 0; x < map_w; ++x)
+    // Voor elk cel wordt 1 byte gebruikt in de tijdelijke arrays om aan te duiden of deze "flagged" of "uncovered" is.
+    for (int x = 0; x < map_w; ++x)
+    {
+        for (int y = 0; y < map_h; ++y)
         {
-            int idx = y * map_w + x;
-            f_arr[idx] = FLAG(x, y) ? 1 : 0;
-            u_arr[idx] = UNC(x, y) ? 1 : 0;
+            int i = y * map_w + x;
+            f_arr[i] = FLAG(x, y) ? 1 : 0;
+            u_arr[i] = UNC(x, y) ? 1 : 0;
         }
-    // De spelkaart (map) wordt via de save_field API weggeschreven samen met twee tijdelijke
-    // *   arrays die de vlag- en ongedekt/gedekt status per cel bevatten.
-    // Roept save_field(filename, map_w, map_h, map, f_arr, u_arr) aan om de daadwerkelijke
-    //*   schrijfoperatie uit te voeren; eventuele foutmeldingen van save_field worden gerapporteerd.
+    }
+    /*
+     * We slaan het speelveld op via de save_field functie.
+     * Deze functie zal de map, de flagged array en de uncovered array wegschrijven naar een bestand met naam filenamebuf.
+     */
     if (save_field(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0)
     {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
     }
     else
     {
-        printf("Saved field and play state to %s\n", filenamebuf);
+        printf("Saved field to %s\n", filenamebuf);
     }
     free(f_arr);
     free(u_arr);
@@ -856,7 +855,8 @@ int load_file(const char *filename)
     {
         int state_rows = rows - (sep + 1);
         int use_rows = state_rows < map_rows ? state_rows : map_rows;
-        // Indien een state - blok aanwezig is, wordt voor zoveel rijen / kolommen als beschikbaar de *FLAG / UNC status ingesteld(partiële state - blokken met minder //rijen / kolommen worden * geaccepteerd tot de kaartgrootte).for (int y = 0; y < use_rows; ++y)
+        // Indien een state - blok aanwezig is, wordt voor zoveel rijen / kolommen als beschikbaar de *FLAG / UNC status ingesteld(partiële state - blokken met minder //rijen / kolommen worden * geaccepteerd tot de kaartgrootte).
+        for (int y = 0; y < use_rows; ++y)
         {
             int c = 0;
             char *tok = strtok(lines[sep + 1 + y], " \t");
