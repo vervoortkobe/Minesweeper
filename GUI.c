@@ -343,7 +343,7 @@ void read_input()
              * Linker muisknop: ontdek cel.
              * Bij de eerste klik plaatsen we eerst de mijnen (exclusief de aangeklikte cel).
              */
-            printf("Clicked at (%d, %d) -> cell (%d, %d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
+            printf("Clicked at (%d, %d) -> coord (%d, %d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
             if (!mines_placed)
             {
                 // dit coördinaat uitsluiten bij mijnplaatsing, omdat de speler hier net geklikt heeft
@@ -766,83 +766,106 @@ void save_game()
     free(u_arr);
 }
 
-// Laad een spelbestand dat mogelijk een optioneel state blok bevat, gescheiden door een lege regel.
-//  - map + state: hetzelfde als bovenstaande, dan een lege regel, dan rijen van state tokens per cel: U=ongedekt, F=gevlagd, #=bedekt
-/* * Laadt een spelbestand en initialiseert de interne spelstatus (kaart en optioneel de staat).
- * Geaccepteerde bestandslay-out:
- *  - map-only: één of meer regels met cel-tokens gescheiden door spaties/tabs. Elke token
- *    vertegenwoordigt de inhoud van een cel (bv. 'M' voor mijn).
- *  - map + state: eerst de kaart zoals hierboven, daarna een lege regel, daarna één of meer
- *    rijen met state-tokens per cel (gescheiden door spaties/tabs). State-tokens:
- *      'U' = ongedekt / onthuld (uncovered)
- *      'F' = gevlagd (flagged)
- *      '#' of ander teken = behandeld als bedekt (covered / geen speciale status)
- * */
+/*
+ * We laden met de load_file functie een spelbestand in.
+ * Een spelbestand bestaat uit:
+ * - de state van een actief gespeelde map
+ * - de uncovered map (oplossing)
+ * Verder betekenen de volgende gebruikte letters in het bestand:
+ * - U: uncovered
+ * - F: flagged
+ * - M: mine
+ * - #: covered
+ */
 int load_file(const char *filename)
 {
     char **lines = NULL;
-    int rows = 0;
-    // Leest het bestand met read_lines(), bepaalt het scheidingspunt (lege regel) tussen kaart
-    // *en optionele staat.if (read_lines(filename, &lines, &rows) != 0) return -1;
-    if (rows == 0)
+    int count = 0;
+    // We lezen het bestand regel per regel in via read_lines().
+    if (read_lines(filename, &lines, &count) != 0)
+        return -1;
+
+    // Controleer of het bestand minimaal één regel bevat.
+    if (count == 0)
     {
-        free_lines(lines, rows);
+        free_lines(lines, count);
         return -1;
     }
+
+    // Zoek de scheidingsregel (lege regel) tussen kaart en state-blok.
+    // Als sep == -1, dan is er geen state-blok aanwezig.
     int sep = -1;
-    for (int i = 0; i < rows; ++i)
+    for (int i = 0; i < count; ++i)
         if (lines[i][0] == '\0')
         {
             sep = i;
             break;
         }
-    int map_rows = (sep == -1) ? rows : sep;
+
+    // Bepaal het aantal rijen van de kaart.
+    // Als er geen scheidingsregel is, dan is de hele file de kaart.
+    int map_rows = (sep == -1) ? count : sep;
+
+    // Bepaal het aantal kolommen door de niet-whitespace karakters
+    // in de eerste regel te tellen. Elk karakter dat geen spatie of tab is,
+    // vertegenwoordigt één cel.
     int cols = 0;
-    char *tmp = strdup(lines[0]);
-    // Bepaalt aantal kolommen door de eerste regel te tokenizen op witruimte.
-    char *p = strtok(tmp, " \t");
-    while (p)
+    for (int i = 0; lines[0][i] != '\0'; i++)
     {
-        cols++;
-        p = strtok(NULL, " \t");
+        if (lines[0][i] != ' ' && lines[0][i] != '\t')
+            cols++;
     }
-    free(tmp);
+
+    // Controleer of er minimaal één kolom is.
     if (cols <= 0)
     {
-        free_lines(lines, rows);
+        free_lines(lines, count);
         return -1;
     }
+
     // Roept init_map(cols, map_rows, 0) aan om interne kaartstructuren toe te wijzen.
+    // Initialiseer de kaartstructuren met de bepaalde afmetingen.
+    // Het derde argument (0) geeft aan dat er nog geen mijnen random geplaatst worden.
     if (init_map(cols, map_rows, 0) != 0)
     {
-        free_lines(lines, rows);
+        free_lines(lines, count);
         return -1;
     }
+
     int mines = 0;
-    // Parseert de kaartregels en vult de kaart (MAP) per cel; telt tegelijk het aantal mijnen
-    //*('M')en stelt map_mines in.
+
+    // Parseer de kaartregels en vul de kaart (MAP) per cel.
+    // Whitespace wordt overgeslagen, elk ander karakter wordt als celwaarde genomen.
+    // Tel tegelijkertijd het aantal mijnen ('M') en stel map_mines in.
     for (int y = 0; y < map_rows; ++y)
     {
-        int c = 0;
-        char *tok = strtok(lines[y], " \t");
-        while (tok && c < cols)
+        int col = 0;
+        for (int i = 0; lines[y][i] != '\0' && col < cols; i++)
         {
-            MAP(c, y) = tok[0];
-            if (MAP(c, y) == 'M')
-                mines++;
-            c++;
-            tok = strtok(NULL, " \t");
+            // Sla whitespace over
+            if (lines[y][i] != ' ' && lines[y][i] != '\t')
+            {
+                MAP(col, y) = lines[y][i];
+                if (MAP(col, y) == 'M')
+                    mines++;
+                col++;
+            }
         }
     }
     map_mines = mines;
-    // Roept alloc_game_states() om de speltoestanden (FLAG/UNC arrays) te initialiseren.
+
+    // We initialiseren via alloc_game_states() de benodigde game_states.
+    // Alloceer de benodigde game_states (uncovered en flagged arrays).
     if (alloc_game_states() != 0)
     {
-        free_lines(lines, rows);
+        free_lines(lines, count);
         free_map();
         return -1;
     }
-    // Set alle FLAG/UNC waarden initieel op false.
+
+    // We zetten alle uncovered en flagged states standaard op false.
+    // Initialiseer alle cellen als niet onthuld (uncovered = false)
+    // en niet gemarkeerd (flagged = false). Dit is de standaard begintoestand.
     for (int x = 0; x < map_w; ++x)
     {
         for (int y = 0; y < map_h; ++y)
@@ -851,29 +874,43 @@ int load_file(const char *filename)
             FLAG(x, y) = false;
         }
     }
+
+    // Indien een state-blok aanwezig is (sep != -1), lees dan de
+    // FLAG/UNC status in voor zoveel rijen/kolommen als beschikbaar.
+    // Dit maakt het mogelijk om een spel in uitvoering te laden.
+    // Partiële state-blokken (minder rijen/kolommen dan de kaart) worden
+    // geaccepteerd; enkel de beschikbare cellen worden ingesteld.
     if (sep != -1)
     {
-        int state_rows = rows - (sep + 1);
+        // Bereken hoeveel state-rijen er zijn na de scheidingsregel
+        int state_rows = count - (sep + 1);
+        // Gebruik niet meer rijen dan de kaart groot is
         int use_rows = state_rows < map_rows ? state_rows : map_rows;
-        // Indien een state - blok aanwezig is, wordt voor zoveel rijen / kolommen als beschikbaar de *FLAG / UNC status ingesteld(partiële state - blokken met minder //rijen / kolommen worden * geaccepteerd tot de kaartgrootte).
+
+        // Parseer elke state-regel
         for (int y = 0; y < use_rows; ++y)
         {
-            int c = 0;
-            char *tok = strtok(lines[sep + 1 + y], " \t");
-            while (tok && c < cols)
+            int col = 0;
+            for (int i = 0; lines[sep + 1 + y][i] != '\0' && col < cols; i++)
             {
-                if (tok[0] == 'F')
-                    FLAG(c, y) = true;
-                else if (tok[0] == 'U')
-                    UNC(c, y) = true;
-                c++;
-                tok = strtok(NULL, " \t");
+                // Sla whitespace over
+                if (lines[sep + 1 + y][i] != ' ' && lines[sep + 1 + y][i] != '\t')
+                {
+                    // 'F' betekent dat deze cel gemarkeerd is met een vlag
+                    if (lines[sep + 1 + y][i] == 'F')
+                        FLAG(col, y) = true;
+                    // 'U' betekent dat deze cel al onthuld is
+                    else if (lines[sep + 1 + y][i] == 'U')
+                        UNC(col, y) = true;
+                    col++;
+                }
             }
         }
     }
-    // Vrijgegeven geheugen wordt correct opgeruimd met free_lines() bij succes en bij fouten.
-    free_lines(lines, rows);
-    // Zet mines_placed = true op het einde van een succesvolle laadactie.
+
+    // We dealloceren het gebruikte geheugen voor de ingelezen lijnen en de bijhorende count.
+    free_lines(lines, count);
+    // De mijnen zijn nu geplaatst.
     mines_placed = true;
     return 0;
 }
