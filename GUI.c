@@ -707,7 +707,7 @@ void free_gui()
     SDL_Quit();
 }
 
-// Save current map to an incrementally numbered file: field_<width>x<height>_<n>.txt
+// Sla het huidige speelveld op in een genummerd bestand met naam: field_<width>x<height>_<n>.txt
 void save_game()
 {
     char filename[256];
@@ -715,6 +715,7 @@ void save_game()
     while (1)
     {
         snprintf(filename, sizeof(filename), "field_%dx%d_%d.txt", map_w, map_h, n);
+        // De functie controleert of het doelbestand al bestaat door te proberen het te openen.
         FILE *f = fopen(filename, "r");
         if (f)
         {
@@ -727,7 +728,8 @@ void save_game()
     char filenamebuf[256];
     snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
     // build temporary flagged/uncovered arrays as unsigned char arrays for filehandler API
-    int cells = (int)map_w * (int)map_h;
+    // Bouwt twee tijdelijke buffers (unsigned char) van grootte map_w * map_h voor vlaggen
+    // *en ongedekte cellen.Deze buffers worden vrijgegeven aan het eind van de functie.int cells = (int)map_w * (int)map_h;
     unsigned char *f_arr = (unsigned char *)malloc(cells);
     unsigned char *u_arr = (unsigned char *)malloc(cells);
     if (!f_arr || !u_arr)
@@ -736,9 +738,12 @@ void save_game()
             free(f_arr);
         if (u_arr)
             free(u_arr);
+        // Bij geheugenallocatiefouten wordt een perror() uitgevoerd en wordt de functie zonder
+        // schrijven afgebroken.
         perror("Out of memory while saving");
         return;
     }
+    // Voor elk cel wordt 1 byte gebruikt in de tijdelijke arrays: 1 = gezet, 0 = niet gezet.
     for (int y = 0; y < map_h; ++y)
         for (int x = 0; x < map_w; ++x)
         {
@@ -746,6 +751,10 @@ void save_game()
             f_arr[idx] = FLAG(x, y) ? 1 : 0;
             u_arr[idx] = UNC(x, y) ? 1 : 0;
         }
+    // De spelkaart (map) wordt via de save_field API weggeschreven samen met twee tijdelijke
+    // *   arrays die de vlag- en ongedekt/gedekt status per cel bevatten.
+    // Roept save_field(filename, map_w, map_h, map, f_arr, u_arr) aan om de daadwerkelijke
+    //*   schrijfoperatie uit te voeren; eventuele foutmeldingen van save_field worden gerapporteerd.
     if (save_field(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0)
     {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
@@ -758,14 +767,24 @@ void save_game()
     free(u_arr);
 }
 
-// Load a game file which may contain an optional state block separated by a blank line.
-//  - map + state: same as above, then a blank line, then rows of state tokens per cell: U=uncovered, F=flagged, #=covered
+// Laad een spelbestand dat mogelijk een optioneel state blok bevat, gescheiden door een lege regel.
+//  - map + state: hetzelfde als bovenstaande, dan een lege regel, dan rijen van state tokens per cel: U=ongedekt, F=gevlagd, #=bedekt
+/* * Laadt een spelbestand en initialiseert de interne spelstatus (kaart en optioneel de staat).
+ * Geaccepteerde bestandslay-out:
+ *  - map-only: één of meer regels met cel-tokens gescheiden door spaties/tabs. Elke token
+ *    vertegenwoordigt de inhoud van een cel (bv. 'M' voor mijn).
+ *  - map + state: eerst de kaart zoals hierboven, daarna een lege regel, daarna één of meer
+ *    rijen met state-tokens per cel (gescheiden door spaties/tabs). State-tokens:
+ *      'U' = ongedekt / onthuld (uncovered)
+ *      'F' = gevlagd (flagged)
+ *      '#' of ander teken = behandeld als bedekt (covered / geen speciale status)
+ * */
 int load_file(const char *filename)
 {
     char **lines = NULL;
     int rows = 0;
-    if (read_lines(filename, &lines, &rows) != 0)
-        return -1;
+    // Leest het bestand met read_lines(), bepaalt het scheidingspunt (lege regel) tussen kaart
+    // *en optionele staat.if (read_lines(filename, &lines, &rows) != 0) return -1;
     if (rows == 0)
     {
         free_lines(lines, rows);
@@ -781,6 +800,7 @@ int load_file(const char *filename)
     int map_rows = (sep == -1) ? rows : sep;
     int cols = 0;
     char *tmp = strdup(lines[0]);
+    // Bepaalt aantal kolommen door de eerste regel te tokenizen op witruimte.
     char *p = strtok(tmp, " \t");
     while (p)
     {
@@ -793,12 +813,15 @@ int load_file(const char *filename)
         free_lines(lines, rows);
         return -1;
     }
+    // Roept init_map(cols, map_rows, 0) aan om interne kaartstructuren toe te wijzen.
     if (init_map(cols, map_rows, 0) != 0)
     {
         free_lines(lines, rows);
         return -1;
     }
     int mines = 0;
+    // Parseert de kaartregels en vult de kaart (MAP) per cel; telt tegelijk het aantal mijnen
+    //*('M')en stelt map_mines in.
     for (int y = 0; y < map_rows; ++y)
     {
         int c = 0;
@@ -813,23 +836,27 @@ int load_file(const char *filename)
         }
     }
     map_mines = mines;
+    // Roept alloc_game_states() om de speltoestanden (FLAG/UNC arrays) te initialiseren.
     if (alloc_game_states() != 0)
     {
         free_lines(lines, rows);
         free_map();
         return -1;
     }
-    for (int y = 0; y < map_h; ++y)
-        for (int x = 0; x < map_w; ++x)
+    // Set alle FLAG/UNC waarden initieel op false.
+    for (int x = 0; x < map_w; ++x)
+    {
+        for (int y = 0; y < map_h; ++y)
         {
             UNC(x, y) = false;
             FLAG(x, y) = false;
         }
+    }
     if (sep != -1)
     {
         int state_rows = rows - (sep + 1);
         int use_rows = state_rows < map_rows ? state_rows : map_rows;
-        for (int y = 0; y < use_rows; ++y)
+        // Indien een state - blok aanwezig is, wordt voor zoveel rijen / kolommen als beschikbaar de *FLAG / UNC status ingesteld(partiële state - blokken met minder //rijen / kolommen worden * geaccepteerd tot de kaartgrootte).for (int y = 0; y < use_rows; ++y)
         {
             int c = 0;
             char *tok = strtok(lines[sep + 1 + y], " \t");
@@ -844,7 +871,9 @@ int load_file(const char *filename)
             }
         }
     }
+    // Vrijgegeven geheugen wordt correct opgeruimd met free_lines() bij succes en bij fouten.
     free_lines(lines, rows);
+    // Zet mines_placed = true op het einde van een succesvolle laadactie.
     mines_placed = true;
     return 0;
 }
