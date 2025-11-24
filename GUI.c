@@ -792,8 +792,10 @@ int load_file(const char *filename)
         return -1;
     }
 
-    // Zoek de scheidingsregel (lege regel) tussen kaart en state-blok.
-    // Als sep == -1, dan is er geen state-blok aanwezig.
+    /*
+     * Zoek de scheidingsregel (lege regel) tussen het speelveld en de oplossingsmap.
+     * Als sep == -1, dan is er geen oplossingsmap aanwezig.
+     */
     int sep = -1;
     for (int i = 0; i < count; ++i)
         if (lines[i][0] == '\0')
@@ -802,13 +804,13 @@ int load_file(const char *filename)
             break;
         }
 
-    // Bepaal het aantal rijen van de kaart.
-    // Als er geen scheidingsregel is, dan is de hele file de kaart.
-    int map_rows = (sep == -1) ? count : sep;
+    /*
+     * Bepaal het aantal rijen van het speelveld.
+     * Als er geen scheidingsregel wordt gevonden, dan bevat het bestand enkel het speelveld.
+     */
+    int map_count = (sep == -1) ? count : sep;
 
-    // Bepaal het aantal kolommen door de niet-whitespace karakters
-    // in de eerste regel te tellen. Elk karakter dat geen spatie of tab is,
-    // vertegenwoordigt één cel.
+    // We bepalen het aantal kolommen door de niet-whitespace karakters in de eerste regel te tellen.
     int cols = 0;
     for (int i = 0; lines[0][i] != '\0'; i++)
     {
@@ -816,37 +818,39 @@ int load_file(const char *filename)
             cols++;
     }
 
-    // Controleer of er minimaal één kolom is.
+    // We controleren of er minimaal één kolom is.
     if (cols <= 0)
     {
         free_lines(lines, count);
         return -1;
     }
 
-    // Roept init_map(cols, map_rows, 0) aan om interne kaartstructuren toe te wijzen.
-    // Initialiseer de kaartstructuren met de bepaalde afmetingen.
-    // Het derde argument (0) geeft aan dat er nog geen mijnen random geplaatst worden.
-    if (init_map(cols, map_rows, 0) != 0)
+    /*
+     * We roepen de init_map functie aan om een speelveld/map te initialiseren met de juiste afmetingen.
+     * We geven 0 als het aantal mijnen mee, zodat er nog geen mijnen random geplaatst worden.
+     * De mijnen worden later immers uit het bestand ingelezen.
+     */
+    if (init_map(cols, map_count, 0) != 0)
     {
         free_lines(lines, count);
         return -1;
     }
 
+    /*
+     * We gaan door elke regel van het speelveld en vullen ons speelveld/onze map in met de juiste waarden.
+     * We tellen ook het aantal mijnen tijdens het inlezen.
+     */
     int mines = 0;
-
-    // Parseer de kaartregels en vul de kaart (MAP) per cel.
-    // Whitespace wordt overgeslagen, elk ander karakter wordt als celwaarde genomen.
-    // Tel tegelijkertijd het aantal mijnen ('M') en stel map_mines in.
-    for (int y = 0; y < map_rows; ++y)
+    for (int i = 0; i < map_count; ++i)
     {
         int col = 0;
-        for (int i = 0; lines[y][i] != '\0' && col < cols; i++)
+        for (int j = 0; lines[i][j] != '\0' && col < cols; j++)
         {
-            // Sla whitespace over
-            if (lines[y][i] != ' ' && lines[y][i] != '\t')
+            // sla whitespaces over
+            if (lines[i][j] != ' ' && lines[i][j] != '\t')
             {
-                MAP(col, y) = lines[y][i];
-                if (MAP(col, y) == 'M')
+                MAP(col, i) = lines[i][j];
+                if (MAP(col, i) == 'M')
                     mines++;
                 col++;
             }
@@ -855,7 +859,6 @@ int load_file(const char *filename)
     map_mines = mines;
 
     // We initialiseren via alloc_game_states() de benodigde game_states.
-    // Alloceer de benodigde game_states (uncovered en flagged arrays).
     if (alloc_game_states() != 0)
     {
         free_lines(lines, count);
@@ -864,8 +867,6 @@ int load_file(const char *filename)
     }
 
     // We zetten alle uncovered en flagged states standaard op false.
-    // Initialiseer alle cellen als niet onthuld (uncovered = false)
-    // en niet gemarkeerd (flagged = false). Dit is de standaard begintoestand.
     for (int x = 0; x < map_w; ++x)
     {
         for (int y = 0; y < map_h; ++y)
@@ -875,33 +876,32 @@ int load_file(const char *filename)
         }
     }
 
-    // Indien een state-blok aanwezig is (sep != -1), lees dan de
-    // FLAG/UNC status in voor zoveel rijen/kolommen als beschikbaar.
-    // Dit maakt het mogelijk om een spel in uitvoering te laden.
-    // Partiële state-blokken (minder rijen/kolommen dan de kaart) worden
-    // geaccepteerd; enkel de beschikbare cellen worden ingesteld.
+    /*
+     * Wanneer er een scheidingsregel is gevonden, bevat het bestand ook een oplossingsmap.
+     * We moeten dus door elke regel van de oplossingsmap gaan en de FLAG/UNC states instellen voor alle cellen/fields.
+     */
     if (sep != -1)
     {
-        // Bereken hoeveel state-rijen er zijn na de scheidingsregel
+        // We berekenen het aantal rijen van de oplossingsmap.
         int state_rows = count - (sep + 1);
-        // Gebruik niet meer rijen dan de kaart groot is
-        int use_rows = state_rows < map_rows ? state_rows : map_rows;
+        // Als de oplossingsmap meer rijen bevat dan het speelveld, worden de overige rijen genegeerd.
+        int use_rows = state_rows < map_count ? state_rows : map_count;
 
-        // Parseer elke state-regel
-        for (int y = 0; y < use_rows; ++y)
+        // We gaan over elke regel van de oplossingsmap en vullen de FLAG/UNC states in.
+        for (int i = 0; i < use_rows; ++i)
         {
             int col = 0;
-            for (int i = 0; lines[sep + 1 + y][i] != '\0' && col < cols; i++)
+            for (int j = 0; lines[sep + 1 + i][j] != '\0' && col < cols; j++)
             {
-                // Sla whitespace over
-                if (lines[sep + 1 + y][i] != ' ' && lines[sep + 1 + y][i] != '\t')
+                // sla whitespaces over
+                if (lines[sep + 1 + i][j] != ' ' && lines[sep + 1 + i][j] != '\t')
                 {
-                    // 'F' betekent dat deze cel gemarkeerd is met een vlag
-                    if (lines[sep + 1 + y][i] == 'F')
-                        FLAG(col, y) = true;
-                    // 'U' betekent dat deze cel al onthuld is
-                    else if (lines[sep + 1 + y][i] == 'U')
-                        UNC(col, y) = true;
+                    // deze cell is flagged
+                    if (lines[sep + 1 + i][j] == 'F')
+                        FLAG(col, i) = true;
+                    // deze cell is uncovered
+                    else if (lines[sep + 1 + i][j] == 'U')
+                        UNC(col, i) = true;
                     col++;
                 }
             }
