@@ -1,6 +1,9 @@
 #ifndef MINESWEEPER_GUI_H
 #define MINESWEEPER_GUI_H
 
+#include <stdbool.h>
+#include "map.h"
+
 /*
  * De hoogte en breedte van het venster (in pixels).
  * Deze dimensies zijn arbitrair gekozen. Deze dimensies hangen mogelijk af van de grootte van het speelveld.
@@ -33,5 +36,53 @@ typedef struct
     bool removed;
     bool saved_uncovered;
 } Field;
+
+extern Field *fields;
+
+// Field accessor functions
+static inline Field *field_at(Coord c)
+{
+    return &fields[coord_index(c)];
+}
+
+static inline bool field_is_uncovered(Coord c)
+{
+    return field_at(c)->uncovered;
+}
+
+static inline void field_set_uncovered(Coord c, bool val)
+{
+    field_at(c)->uncovered = val;
+}
+
+static inline bool field_is_flagged(Coord c)
+{
+    return field_at(c)->flagged;
+}
+
+static inline void field_set_flagged(Coord c, bool val)
+{
+    field_at(c)->flagged = val;
+}
+
+static inline bool field_is_removed(Coord c)
+{
+    return field_at(c)->removed;
+}
+
+static inline void field_set_removed(Coord c, bool val)
+{
+    field_at(c)->removed = val;
+}
+
+static inline bool field_is_saved_uncovered(Coord c)
+{
+    return field_at(c)->saved_uncovered;
+}
+
+static inline void field_set_saved_uncovered(Coord c, bool val)
+{
+    field_at(c)->saved_uncovered = val;
+}
 
 #endif // MINESWEEPER_GUI_H

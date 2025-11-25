@@ -108,24 +108,16 @@ int should_continue = 1;
 static SDL_Window *window;
 
 // benodigde game state variabelen
-static Field *fields = NULL;
-static bool mines_placed = false; // of de mijnen reeds geplaatst zijn via add_mines
-static bool show_mines = false;   // via 'b' key
+Field *fields = NULL;
+bool mines_placed = false;      // of de mijnen reeds geplaatst zijn via add_mines
+static bool show_mines = false; // via 'b' key
 static bool game_lost = false;
-static int losing_x = -1;
-static int losing_y = -1;
+static Coord losing_coord = {-1, -1};
 static uint32_t lose_start_time = 0;
 static bool game_won = false;
 static int win_remaining = 0;
 static uint32_t win_last_remove = 0;
 static bool show_all = false; // via 'p' key
-
-// om gemakkelijk de states van een field te checken
-#define FIELD_AT(c, r) (fields[(r) * map_w + (c)])
-#define UNC(c, r) (FIELD_AT(c, r).uncovered)
-#define FLAG(c, r) (FIELD_AT(c, r).flagged)
-#define REMOVED(c, r) (FIELD_AT(c, r).removed)
-#define SAVEDUNC(c, r) (FIELD_AT(c, r).saved_uncovered)
 
 int alloc_game_states(void)
 {
@@ -149,15 +141,19 @@ void free_game_states(void)
 // Bij elke interactie, wordt het speeldveld in de console geprint.
 static void print_view()
 {
-    for (int x = 0; x < map_w; ++x)
+    for (int y = 0; y < map_h; ++y)
     {
-        for (int y = 0; y < map_h; ++y)
+        for (int x = 0; x < map_w; ++x)
         {
-            if (UNC(x, y))
+            Coord c = coord_make(x, y);
+            if (field_is_uncovered(c))
             {
-                putchar(MAP(x, y));
+                if (MAP_AT(c).is_mine)
+                    putchar('M');
+                else
+                    putchar('0' + MAP_AT(c).adjacent_mines);
             }
-            else if (FLAG(x, y))
+            else if (field_is_flagged(c))
             {
                 putchar('F');
             }
@@ -240,7 +236,10 @@ void read_input()
                 // sla tijdelijk vorige uncovered state op
                 for (int x = 0; x < map_w; ++x)
                     for (int y = 0; y < map_h; ++y)
-                        SAVEDUNC(x, y) = UNC(x, y);
+                    {
+                        Coord c = coord_make(x, y);
+                        field_set_saved_uncovered(c, field_is_uncovered(c));
+                    }
                 // Voor de eerste muisklik, zijn er nog geen mijnen geplaatst.
                 // Voordat we alles uncoveren, moeten we dus eerst de mijnen plaatsen.
                 if (!mines_placed)
@@ -252,14 +251,20 @@ void read_input()
                 // Uncover alles tijdelijk
                 for (int x = 0; x < map_w; ++x)
                     for (int y = 0; y < map_h; ++y)
-                        UNC(x, y) = true;
+                    {
+                        Coord c = coord_make(x, y);
+                        field_set_uncovered(c, true);
+                    }
             }
             else
             {
                 // terugzetten van vorige uncovered state
                 for (int x = 0; x < map_w; ++x)
                     for (int y = 0; y < map_h; ++y)
-                        UNC(x, y) = SAVEDUNC(x, y);
+                    {
+                        Coord c = coord_make(x, y);
+                        field_set_uncovered(c, field_is_saved_uncovered(c));
+                    }
             }
             changed = true;
         }
@@ -294,26 +299,49 @@ void read_input()
         {
             /*
              * Rechter muisknop: toggle een vlag op de cel.
-             * FLAG(...) wordt aan/uit gezet.
+             * Maar alleen als we niet al het maximale aantal vlaggen hebben geplaatst.
              */
-            FLAG(clicked_col, clicked_row) = !FLAG(clicked_col, clicked_row);
-            printf("Right click at (%d, %d) -> cell (%d, %d) flag=%d\n", mouse_x, mouse_y, clicked_row, clicked_col, (int)FLAG(clicked_col, clicked_row));
-            changed = true;
+            Coord clicked = coord_make(clicked_col, clicked_row);
+            bool currently_flagged = field_is_flagged(clicked);
+            
+            // Tellen hoeveel vlaggen er al zijn geplaatst
+            int total_flags = 0;
+            for (int y = 0; y < map_h; ++y)
+            {
+                for (int x = 0; x < map_w; ++x)
+                {
+                    Coord c = coord_make(x, y);
+                    if (field_is_flagged(c))
+                        total_flags++;
+                }
+            }
+            
+            // Als we een vlag willen plaatsen en al het max bereikt hebben, skip
+            if (!currently_flagged && total_flags >= map_mines)
+            {
+                printf("Cannot place more flags (max: %d)\n", map_mines);
+            }
+            else
+            {
+                field_set_flagged(clicked, !currently_flagged);
+                printf("Right click at (%d, %d) -> cell (col=%d, row=%d) flag=%d\n", mouse_x, mouse_y, clicked_col, clicked_row, (int)field_is_flagged(clicked));
+                changed = true;
+            }
 
             /*
              * Controleer of de speler gewonnen heeft door alle mijnen correct te vlaggen.
              * We tellen het totaal aan vlaggen en hoeveel daarvan op een mijn staan.
              */
             int correct_flags = 0;
-            int total_flags = 0;
             for (int y = 0; y < map_h; ++y)
             {
                 for (int x = 0; x < map_w; ++x)
                 {
-                    if (FLAG(x, y))
+                    Coord c = coord_make(x, y);
+                    if (field_is_flagged(c))
                     {
                         total_flags++;
-                        if (MAP(x, y) == 'M')
+                        if (MAP_AT(c).is_mine)
                             correct_flags++;
                     }
                 }
@@ -329,7 +357,8 @@ void read_input()
                 {
                     for (int x = 0; x < map_w; ++x)
                     {
-                        REMOVED(x, y) = false; // nog niet verwijderd tijdens animatie
+                        Coord c = coord_make(x, y);
+                        field_set_removed(c, false); // nog niet verwijderd tijdens animatie
                     }
                 }
                 // Seed de RNG met huidige ticks zodat de verwijdervolgorde random is
@@ -343,71 +372,70 @@ void read_input()
              * Linker muisknop: ontdek cel.
              * Bij de eerste klik plaatsen we eerst de mijnen (exclusief de aangeklikte cel).
              */
-            printf("Clicked at (%d, %d) -> coord (%d, %d)\n", mouse_x, mouse_y, clicked_row, clicked_col);
+            printf("Left click at (%d, %d) -> cell (col=%d, row=%d)\n", mouse_x, mouse_y, clicked_col, clicked_row);
+            Coord clicked = coord_make(clicked_col, clicked_row);
+
             if (!mines_placed)
             {
                 // dit coördinaat uitsluiten bij mijnplaatsing, omdat de speler hier net geklikt heeft
-                Coord exclude = {.x = clicked_col, .y = clicked_row};
-                add_mines(&exclude);
+                add_mines(&clicked);
                 print_map();
                 printf("\n");
                 mines_placed = true;
                 changed = true;
             }
-            if (MAP(clicked_col, clicked_row) == 'M')
+            if (MAP_AT(clicked).is_mine)
             {
                 // speler klikte op een mijn -> game over
                 if (!game_lost)
                 {
                     game_lost = true;
-                    losing_x = clicked_col;
-                    losing_y = clicked_row;
+                    losing_coord = clicked;
                     lose_start_time = SDL_GetTicks();
                     // toon alle mijnen
                     for (int x = 0; x < map_w; ++x)
                     {
                         for (int y = 0; y < map_h; ++y)
                         {
-                            if (MAP(x, y) == 'M')
-                                UNC(x, y) = true;
+                            Coord c = coord_make(x, y);
+                            if (MAP_AT(c).is_mine)
+                                field_set_uncovered(c, true);
                         }
                     }
                     // uncover ook de mijn waarop geklikt werd
-                    UNC(losing_x, losing_y) = true;
-                    printf("You clicked a mine at (%d, %d) - you lose.\n", losing_x, losing_y);
+                    field_set_uncovered(losing_coord, true);
+                    printf("You clicked a mine at (col=%d, row=%d) - you lose.\n", losing_coord.x, losing_coord.y);
                     changed = true;
                 }
             }
-            else if (MAP(clicked_col, clicked_row) == '0')
+            else if (MAP_AT(clicked).adjacent_mines == 0)
             {
-                // Wanneer een lege cel ('0') wordt aangeklikt, worden de naburige cellen ook automatisch ontdekt.
-                // We doen dit d.m.v. twee aparte arrays die als stack fungeren.
+                // Wanneer een lege cel (0 adjacent mines) wordt aangeklikt, worden de naburige cellen ook automatisch ontdekt.
+                // We doen dit d.m.v. een array die als stack fungeren.
                 int size = (int)map_w * (int)map_h;
-                int stack_x[size];
-                int stack_y[size];
+                Coord stack[size];
                 int i = 0;
-                // We push de startcellen op de stacks.
-                stack_x[i] = clicked_col;
-                stack_y[i] = clicked_row;
+                // We push de startcel op de stack.
+                stack[i] = clicked;
                 i++;
 
                 while (i > 0)
                 {
                     // iterateer zolang er cellen in de stack zitten
                     i--;
-                    int coord_x = stack_x[i];
-                    int coord_y = stack_y[i];
+                    Coord current = stack[i];
+
                     // bounds check
-                    if (coord_x < 0 || coord_x >= map_w || coord_y < 0 || coord_y >= map_h)
+                    if (!coord_valid(current))
                         continue;
                     // als de cel al uncovered is, slaan we ze over
-                    if (UNC(coord_x, coord_y))
+                    if (field_is_uncovered(current))
                         continue;
                     // uncover de cel
-                    UNC(coord_x, coord_y) = true;
+                    field_set_uncovered(current, true);
                     changed = true;
-                    // als de cel ook een '0' is, push alle niet-onthulde en niet-gevlagde buren
-                    if (MAP(coord_x, coord_y) == '0')
+                    // als de cel ook 0 aangrenzende mijnen heeft, push alle niet-onthulde en niet-gevlagde buren
+                    if (MAP_AT(current).adjacent_mines == 0)
                     {
                         // push alle 8 buren
                         for (int diag_x = -1; diag_x <= 1; diag_x++)
@@ -416,15 +444,13 @@ void read_input()
                             {
                                 if (diag_x == 0 && diag_y == 0)
                                     continue;
-                                int neigh_x = coord_x + diag_x;
-                                int neigh_y = coord_y + diag_y;
-                                if (neigh_x < 0 || neigh_x >= map_w || neigh_y < 0 || neigh_y >= map_h)
+                                Coord neighbor = coord_make(current.x + diag_x, current.y + diag_y);
+                                if (!coord_valid(neighbor))
                                     continue;
-                                if (!UNC(neigh_x, neigh_y) && !FLAG(neigh_x, neigh_y))
+                                if (!field_is_uncovered(neighbor) && !field_is_flagged(neighbor))
                                 {
                                     // push de buurcel
-                                    stack_x[i] = neigh_x;
-                                    stack_y[i] = neigh_y;
+                                    stack[i] = neighbor;
                                     i++;
                                 }
                             }
@@ -435,9 +461,9 @@ void read_input()
             else
             {
                 // uncover een normale nummer cel
-                if (!UNC(clicked_col, clicked_row))
+                if (!field_is_uncovered(clicked))
                 {
-                    UNC(clicked_col, clicked_row) = true;
+                    field_set_uncovered(clicked, true);
                     changed = true;
                 }
             }
@@ -480,30 +506,30 @@ void draw_window()
     {
         for (int col = 0; col < grid_cols; ++col)
         {
+            Coord c = coord_make(col, row);
             SDL_Rect rect = {col * cell_w, row * cell_h, cell_w, cell_h};
             // During win animation, removed cells disappear; otherwise render normally
-            if (game_won && REMOVED(col, row))
+            if (game_won && field_is_removed(c))
             {
                 continue; // disappeared
             }
 
             // If user asked to show mines, draw them regardless of uncovered state
-            if (show_mines && MAP(col, row) == 'M')
+            if (show_mines && MAP_AT(c).is_mine)
             {
                 // if win animation is active and cell has been removed, skip drawing
-                if (game_won && REMOVED(col, row))
+                if (game_won && field_is_removed(c))
                     continue;
                 SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
                 continue;
             }
 
-            if (UNC(col, row))
+            if (field_is_uncovered(c))
             {
-                char c = MAP(col, row);
-                if (c == 'M')
+                if (MAP_AT(c).is_mine)
                 {
                     // If player lost and this is the losing mine, make it blink red every second
-                    if (game_lost && row == losing_y && col == losing_x)
+                    if (game_lost && coord_equals(c, losing_coord))
                     {
                         uint32_t t = SDL_GetTicks();
                         uint32_t elapsed = t - lose_start_time;
@@ -528,10 +554,10 @@ void draw_window()
                         SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
                     }
                 }
-                else if (c >= '0' && c <= '8')
+                else
                 {
-                    int idx = c - '0';
-                    if (digit_textures[idx])
+                    int idx = MAP_AT(c).adjacent_mines;
+                    if (idx >= 0 && idx <= 8 && digit_textures[idx])
                     {
                         SDL_RenderCopy(renderer, digit_textures[idx], NULL, &rect);
                     }
@@ -540,14 +566,10 @@ void draw_window()
                         SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                     }
                 }
-                else
-                {
-                    SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
-                }
             }
             else
             {
-                if (FLAG(col, row) && digit_flagged_texture)
+                if (field_is_flagged(c) && digit_flagged_texture)
                 {
                     SDL_RenderCopy(renderer, digit_flagged_texture, NULL, &rect);
                 }
@@ -569,11 +591,10 @@ void draw_window()
             int tries = 0;
             while (tries < 1000 && win_remaining > 0)
             {
-                int rx = rand() % map_w;
-                int ry = rand() % map_h;
-                if (!REMOVED(rx, ry))
+                Coord rc = coord_make(rand() % map_w, rand() % map_h);
+                if (!field_is_removed(rc))
                 {
-                    REMOVED(rx, ry) = true;
+                    field_set_removed(rc, true);
                     win_remaining--;
                     break;
                 }
@@ -745,16 +766,34 @@ void save_game()
     {
         for (int y = 0; y < map_h; ++y)
         {
+            Coord c = coord_make(x, y);
             int i = y * map_w + x;
-            f_arr[i] = FLAG(x, y) ? 1 : 0;
-            u_arr[i] = UNC(x, y) ? 1 : 0;
+            f_arr[i] = field_is_flagged(c) ? 1 : 0;
+            u_arr[i] = field_is_uncovered(c) ? 1 : 0;
         }
     }
+    // Converteer Cell struct array naar char array voor save_field()
+    char *map_as_char = (char *)malloc(cells);
+    if (!map_as_char)
+    {
+        fprintf(stderr, "Out of memory error!\n");
+        free(f_arr);
+        free(u_arr);
+        return;
+    }
+    for (int i = 0; i < cells; ++i)
+    {
+        if (map[i].is_mine)
+            map_as_char[i] = 'M';
+        else
+            map_as_char[i] = '0' + map[i].adjacent_mines;
+    }
+    
     /*
      * We slaan het speelveld op via de save_field functie.
      * Deze functie zal de map, de flagged array en de uncovered array wegschrijven naar een bestand met naam filenamebuf.
      */
-    if (save_field(filenamebuf, map_w, map_h, map, f_arr, u_arr) != 0)
+    if (save_field(filenamebuf, map_w, map_h, map_as_char, f_arr, u_arr) != 0)
     {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
     }
@@ -762,6 +801,7 @@ void save_game()
     {
         printf("Saved field to %s\n", filenamebuf);
     }
+    free(map_as_char);
     free(f_arr);
     free(u_arr);
 }
@@ -849,9 +889,19 @@ int load_file(const char *filename)
             // sla whitespaces over
             if (lines[i][j] != ' ' && lines[i][j] != '\t')
             {
-                MAP(col, i) = lines[i][j];
-                if (MAP(col, i) == 'M')
+                Coord c = coord_make(col, i);
+                char ch = lines[i][j];
+                if (ch == 'M')
+                {
+                    MAP_AT(c).is_mine = true;
+                    MAP_AT(c).adjacent_mines = 0;
                     mines++;
+                }
+                else if (ch >= '0' && ch <= '8')
+                {
+                    MAP_AT(c).is_mine = false;
+                    MAP_AT(c).adjacent_mines = ch - '0';
+                }
                 col++;
             }
         }
@@ -871,8 +921,9 @@ int load_file(const char *filename)
     {
         for (int y = 0; y < map_h; ++y)
         {
-            UNC(x, y) = false;
-            FLAG(x, y) = false;
+            Coord c = coord_make(x, y);
+            field_set_uncovered(c, false);
+            field_set_flagged(c, false);
         }
     }
 
@@ -896,12 +947,13 @@ int load_file(const char *filename)
                 // sla whitespaces over
                 if (lines[sep + 1 + i][j] != ' ' && lines[sep + 1 + i][j] != '\t')
                 {
+                    Coord c = coord_make(col, i);
                     // deze cell is flagged
                     if (lines[sep + 1 + i][j] == 'F')
-                        FLAG(col, i) = true;
+                        field_set_flagged(c, true);
                     // deze cell is uncovered
                     else if (lines[sep + 1 + i][j] == 'U')
-                        UNC(col, i) = true;
+                        field_set_uncovered(c, true);
                     col++;
                 }
             }
