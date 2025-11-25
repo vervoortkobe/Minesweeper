@@ -303,7 +303,7 @@ void read_input()
              */
             Coord clicked = coord_make(clicked_col, clicked_row);
             bool currently_flagged = field_is_flagged(clicked);
-            
+
             // Tellen hoeveel vlaggen er al zijn geplaatst
             int total_flags = 0;
             for (int y = 0; y < map_h; ++y)
@@ -315,7 +315,7 @@ void read_input()
                         total_flags++;
                 }
             }
-            
+
             // Als we een vlag willen plaatsen en al het max bereikt hebben, skip
             if (!currently_flagged && total_flags >= map_mines)
             {
@@ -333,6 +333,7 @@ void read_input()
              * We tellen het totaal aan vlaggen en hoeveel daarvan op een mijn staan.
              */
             int correct_flags = 0;
+            int flagged_count = 0;
             for (int y = 0; y < map_h; ++y)
             {
                 for (int x = 0; x < map_w; ++x)
@@ -340,14 +341,14 @@ void read_input()
                     Coord c = coord_make(x, y);
                     if (field_is_flagged(c))
                     {
-                        total_flags++;
+                        flagged_count++;
                         if (MAP_AT(c).is_mine)
                             correct_flags++;
                     }
                 }
             }
-            // Als het aantal vlaggen gelijk is aan het aantal mijnen en alle vlaggen correct zijn -> win
-            if (total_flags == map_mines && correct_flags == map_mines)
+            // Als het aantal vlaggen gelijk is aan het aantal mijnen en alle mijnen correct geflagd zijn -> win
+            if (correct_flags == map_mines && flagged_count == map_mines)
             {
                 printf("All mines flagged - you win!\n");
                 // Start win-animatie: markeer game_won en initialiseer verwijder-lijst
@@ -788,7 +789,7 @@ void save_game()
         else
             map_as_char[i] = '0' + map[i].adjacent_mines;
     }
-    
+
     /*
      * We slaan het speelveld op via de save_field functie.
      * Deze functie zal de map, de flagged array en de uncovered array wegschrijven naar een bestand met naam filenamebuf.
