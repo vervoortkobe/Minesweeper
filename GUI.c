@@ -157,6 +157,10 @@ static void print_view()
             {
                 putchar('F');
             }
+            else if (show_mines && MAP_AT(c).is_mine)
+            {
+                putchar('M');
+            }
             else
             {
                 putchar('#');
@@ -244,8 +248,9 @@ void read_input()
                 // Voordat we alles uncoveren, moeten we dus eerst de mijnen plaatsen.
                 if (!mines_placed)
                 {
+                    create_map();
+                    alloc_game_states();
                     add_mines(NULL);
-                    print_map();
                     mines_placed = true;
                 }
                 // Uncover alles tijdelijk
@@ -255,6 +260,7 @@ void read_input()
                         Coord c = coord_make(x, y);
                         field_set_uncovered(c, true);
                     }
+                print_view();
             }
             else
             {
@@ -270,6 +276,14 @@ void read_input()
         }
         else if (event.key.keysym.sym == SDLK_b)
         {
+            // Ensure map is generated before showing mines
+            if (!mines_placed)
+            {
+                create_map();
+                alloc_game_states();
+                add_mines(NULL);
+                mines_placed = true;
+            }
             show_mines = !show_mines;
             printf("Toggle show_mines: %d\n", show_mines);
             changed = true;
@@ -301,6 +315,15 @@ void read_input()
              * Rechter muisknop: toggle een vlag op de cel.
              * Maar alleen als we niet al het maximale aantal vlaggen hebben geplaatst.
              */
+            // Ensure map is generated before placing flags
+            if (!mines_placed)
+            {
+                create_map();
+                alloc_game_states();
+                add_mines(NULL);
+                mines_placed = true;
+            }
+
             Coord clicked = coord_make(clicked_col, clicked_row);
             bool currently_flagged = field_is_flagged(clicked);
 
