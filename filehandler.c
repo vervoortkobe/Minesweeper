@@ -17,14 +17,18 @@
  * Zie HOC Slides 3c_advanced:
  * - dia 49 voor memcpy
  */
-int read_lines(const char *filename, char ***out_lines, int *out_count) {
-    if (!filename || !out_lines || !out_count) return -1;
+int read_lines(const char *filename, char ***out_lines, int *out_count)
+{
+    if (!filename || !out_lines || !out_count)
+        return -1;
     FILE *f = fopen(filename, "r");
-    if (!f) return -1;
+    if (!f)
+        return -1;
     // We alloceren geheugen voor het inlezen van 22 lijnen van char arrays (pointers).
-    int cap = 22; // max aantal lijnen die gelezen worden
-    char **lines = malloc(cap * sizeof(char*));
-    if (!lines) {
+    int max = 22; // max aantal lijnen die gelezen worden
+    char **lines = malloc(max * sizeof(char *));
+    if (!lines)
+    {
         fclose(f);
         return -1;
     }
@@ -35,7 +39,8 @@ int read_lines(const char *filename, char ***out_lines, int *out_count) {
     // aantal gelezen lijnen
     int count = 0;
     // We lezen de lijnen uit het bestand via fgets.
-    while (fgets(buffer, sizeof(buffer), f)) {
+    while (fgets(buffer, sizeof(buffer), f))
+    {
         /*
          * In een bestand zijn telkens 2 speelvelden opgeslagen (covered en uncovered).
          * Deze speelvelden worden gescheiden door een lege lijn.
@@ -43,13 +48,15 @@ int read_lines(const char *filename, char ***out_lines, int *out_count) {
          * Om op de juiste manier een lijn te lezen, moeten we dus de eind terminators verwijderen.
          */
         int len = strlen(buffer);
-        while (len > 0 && (buffer[len - 1] == '\n' || buffer[len-1] == '\r'))
+        while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
             buffer[--len] = '\0';
 
         // We alloceren geheugen voor het opslaan van de gelezen lijn.
         char *line = malloc(len + 1); // + 1 voor de null terminator
-        if (!line) {
-            for (int i = 0; i < count; ++i) {
+        if (!line)
+        {
+            for (int i = 0; i < count; ++i)
+            {
                 free(lines[i]);
             }
             free(lines);
@@ -71,10 +78,13 @@ int read_lines(const char *filename, char ***out_lines, int *out_count) {
 }
 
 // Dealloceer het geheugen gebruikt voor het inlezen van de "lines" uit een bestand.
-void free_lines(char **lines, int count) {
-    if (!lines) return;
-    for (int i = 0; i < count; ++i) {
-        if (lines[i]) 
+void free_lines(char **lines, int count)
+{
+    if (!lines)
+        return;
+    for (int i = 0; i < count; ++i)
+    {
+        if (lines[i])
             free(lines[i]);
     }
     free(lines);
@@ -87,14 +97,19 @@ void free_lines(char **lines, int count) {
  * - dia 58 voor fopen
  * - dia 57 voor fputc
  */
-int save_field(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered) {
-    if (!filename || !map) return -1;
+int save_field(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered)
+{
+    if (!filename || !map)
+        return -1;
     // We openen het aangemaakt bestand voor writing.
     FILE *out = fopen(filename, "w");
-    if (!out) return -1;
+    if (!out)
+        return -1;
     // We schrijven het covered speelveld (map) naar het bestand.
-    for (int x = 0; x < w; ++x) {
-        for (int y = 0; y < h; ++y) {
+    for (int x = 0; x < w; ++x)
+    {
+        for (int y = 0; y < h; ++y)
+        {
             fputc(map[y * w + x], out);
             fputc(' ', out);
         }
@@ -102,18 +117,23 @@ int save_field(const char *filename, int w, int h, const char *map, const unsign
     }
     fputc('\n', out);
     // We schrijven het uncovered speelveld naar het bestand.
-    for (int x = 0; x < w; ++x) {
-        for (int y = 0; y < h; ++y) {
+    for (int x = 0; x < w; ++x)
+    {
+        for (int y = 0; y < h; ++y)
+        {
             int i = y * w + x;
-            if (flagged && flagged[i]) {
+            if (flagged && flagged[i])
+            {
                 fputc('F', out);
                 fputc(' ', out);
             }
-            else if (uncovered && uncovered[i]) {
+            else if (uncovered && uncovered[i])
+            {
                 fputc('U', out);
                 fputc(' ', out);
             }
-            else {
+            else
+            {
                 fputc('#', out);
                 fputc(' ', out);
             }

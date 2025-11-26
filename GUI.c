@@ -154,7 +154,7 @@ static void print_view()
                 if (MAP_AT(c).is_mine)
                     putchar('M');
                 else
-                    putchar('0' + MAP_AT(c).adjacent_mines);
+                    putchar('0' + MAP_AT(c).neighbour_mines);
             }
             else if (cell_is_flagged(c))
             {
@@ -435,9 +435,9 @@ void read_input()
                     changed = true;
                 }
             }
-            else if (MAP_AT(clicked).adjacent_mines == 0)
+            else if (MAP_AT(clicked).neighbour_mines == 0)
             {
-                // Wanneer een lege cel (0 adjacent mines) wordt aangeklikt, worden de naburige cellen ook automatisch ontdekt.
+                // Wanneer een lege cel (0 neighbour mines) wordt aangeklikt, worden de naburige cellen ook automatisch ontdekt.
                 // We doen dit d.m.v. een array die als stack fungeren.
                 int size = (int)map_w * (int)map_h;
                 Coord stack[size];
@@ -462,7 +462,7 @@ void read_input()
                     cell_set_uncovered(current, true);
                     changed = true;
                     // als de cel ook 0 aangrenzende mijnen heeft, push alle niet-onthulde en niet-gevlagde buren
-                    if (MAP_AT(current).adjacent_mines == 0)
+                    if (MAP_AT(current).neighbour_mines == 0)
                     {
                         // push alle 8 buren
                         for (int diag_x = -1; diag_x <= 1; diag_x++)
@@ -583,7 +583,7 @@ void draw_window()
                 }
                 else
                 {
-                    int idx = MAP_AT(c).adjacent_mines;
+                    int idx = MAP_AT(c).neighbour_mines;
                     if (idx >= 0 && idx <= 8 && digit_textures[idx])
                     {
                         SDL_RenderCopy(renderer, digit_textures[idx], NULL, &rect);
@@ -813,7 +813,7 @@ void save_game()
         if (map[i].is_mine)
             map_as_char[i] = 'M';
         else
-            map_as_char[i] = '0' + map[i].adjacent_mines;
+            map_as_char[i] = '0' + map[i].neighbour_mines;
     }
 
     /*
@@ -921,13 +921,13 @@ int load_file(const char *filename)
                 if (ch == 'M')
                 {
                     MAP_AT(c).is_mine = true;
-                    MAP_AT(c).adjacent_mines = 0;
+                    MAP_AT(c).neighbour_mines = 0;
                     mines++;
                 }
                 else if (ch >= '0' && ch <= '8')
                 {
                     MAP_AT(c).is_mine = false;
-                    MAP_AT(c).adjacent_mines = ch - '0';
+                    MAP_AT(c).neighbour_mines = ch - '0';
                 }
                 col++;
             }
@@ -956,7 +956,7 @@ int load_file(const char *filename)
 
     /*
      * Wanneer er een scheidingsregel is gevonden, bevat het bestand ook een oplossingsmap.
-     * We moeten dus door elke regel van de oplossingsmap gaan en de FLAG/UNC states instellen voor alle cellen/fields.
+     * We moeten dus door elke regel van de oplossingsmap gaan en de FLAG/UNC states instellen voor alle cellen.
      */
     if (sep != -1)
     {

@@ -4,7 +4,7 @@
 #include <time.h>
 #include "map.h"
 
-// Instantieer de standaardwaarden voor het speelveld.
+// Instantieer de standaardwaarden van het speelveld.
 int map_w = 10;
 int map_h = 10;
 int map_mines = 10;
@@ -31,7 +31,7 @@ int init_map(int w, int h, int mines)
     return 0;
 }
 
-// De aanmgemaakte map wordt opgevuld met Cell structs (no mines, 0 adjacent).
+// De aanmgemaakte map wordt opgevuld met Cell structs (no mines, 0 neighbour).
 void create_map()
 {
     if (map == NULL)
@@ -42,7 +42,7 @@ void create_map()
         {
             Coord c = coord_make(x, y);
             MAP_AT(c).is_mine = false;
-            MAP_AT(c).adjacent_mines = 0;
+            MAP_AT(c).neighbour_mines = 0;
         }
     }
 }
@@ -58,7 +58,7 @@ void print_map()
             if (MAP_AT(c).is_mine)
                 printf("M ");
             else
-                printf("%d ", MAP_AT(c).adjacent_mines);
+                printf("%d ", MAP_AT(c).neighbour_mines);
         }
         printf("\n");
     }
@@ -90,7 +90,7 @@ void fill_map()
                     }
                 }
             }
-            MAP_AT(c).adjacent_mines = count;
+            MAP_AT(c).neighbour_mines = count;
         }
     }
 }

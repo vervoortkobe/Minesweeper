@@ -19,8 +19,7 @@ typedef struct
 typedef struct
 {
     bool is_mine;
-    int adjacent_mines; // Count of adjacent mines
-    // Player state fields
+    int neighbour_mines;
     bool uncovered;
     bool flagged;
     bool removed;
@@ -29,7 +28,6 @@ typedef struct
 
 #define COORD_IDX(c, w) ((c).y * (w) + (c).x)
 
-// Coord helper functions
 static inline Coord coord_make(int x, int y)
 {
     return (Coord){x, y};
