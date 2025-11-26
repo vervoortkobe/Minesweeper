@@ -19,7 +19,12 @@ typedef struct
 typedef struct
 {
     bool is_mine;
-    int adjacent_mines;  // Count of adjacent mines
+    int adjacent_mines; // Count of adjacent mines
+    // Player state fields
+    bool uncovered;
+    bool flagged;
+    bool removed;
+    bool saved_uncovered;
 } Cell;
 
 #define COORD_IDX(c, w) ((c).y * (w) + (c).x)
@@ -50,6 +55,47 @@ void fill_map();
 extern Cell *map;
 
 #define MAP_AT(coord) (map[coord_index(coord)])
+
+// Cell state accessor functions
+static inline bool cell_is_uncovered(Coord c)
+{
+    return MAP_AT(c).uncovered;
+}
+
+static inline void cell_set_uncovered(Coord c, bool val)
+{
+    MAP_AT(c).uncovered = val;
+}
+
+static inline bool cell_is_flagged(Coord c)
+{
+    return MAP_AT(c).flagged;
+}
+
+static inline void cell_set_flagged(Coord c, bool val)
+{
+    MAP_AT(c).flagged = val;
+}
+
+static inline bool cell_is_removed(Coord c)
+{
+    return MAP_AT(c).removed;
+}
+
+static inline void cell_set_removed(Coord c, bool val)
+{
+    MAP_AT(c).removed = val;
+}
+
+static inline bool cell_is_saved_uncovered(Coord c)
+{
+    return MAP_AT(c).saved_uncovered;
+}
+
+static inline void cell_set_saved_uncovered(Coord c, bool val)
+{
+    MAP_AT(c).saved_uncovered = val;
+}
 
 void print_map();
 
