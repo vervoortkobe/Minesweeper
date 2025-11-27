@@ -1,23 +1,24 @@
-all: gui.c main.c map.c args.c filehandler.c gui.h map.h args.h filehandler.h
-	gcc gui.c main.c map.c args.c filehandler.c `sdl2-config --cflags --libs` -o minesweeper
+SRC_DIR = ./src
+OUT_DIR = ./out
+OUT_NAME = game
 
-gui.o: gui.c gui.h
-	gcc -c gui.c `sdl2-config --cflags` -o gui.o
+CXX = gcc
+CC_FLAGS = -g -Wall -O3 `sdl2-config --cflags`
+LINK_FLAGS = `sdl2-config --libs`
 
-main.o: main.c gui.h args.h map.h
-	gcc -c main.c `sdl2-config --cflags` -o main.o
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(OUT_DIR)/%.o,$(SOURCES))
 
-map.o: map.c map.h
-	gcc -c map.c `sdl2-config --cflags` -o map.o
+all: main
 
-args.o: args.c args.h
-	gcc -c args.c `sdl2-config --cflags` -o args.o
+main: $(OUT_DIR) $(OBJS)
+	$(CXX) $(OBJS) $(LINK_FLAGS) -o $(OUT_NAME)
 
-filehandler.o: filehandler.c filehandler.h
-	gcc -c filehandler.c `sdl2-config --cflags` -o filehandler.o
+$(OUT_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CXX) $(CC_FLAGS) -o $@ -c $^
 
-link: gui.o main.o map.o args.o filehandler.o
-	gcc gui.o main.o map.o args.o filehandler.o `sdl2-config --libs` -o minesweeper
+run: all
+	./$(OUT_NAME)
 
 clean:
-	rm -f *.o minesweeper
+	rm -f *.o game

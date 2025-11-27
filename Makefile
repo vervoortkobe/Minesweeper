@@ -24,5 +24,4 @@ run: all
 	./$(OUT_NAME)
 	
 clean:
-	rm -rf $(OUT_DIR)
-	rm -f $(OUT_NAME)
+	rm -f *.o game.exe
