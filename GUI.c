@@ -97,7 +97,7 @@ int mouse_y = 0;
 
 /*
  * Deze variabele geeft aan of de applicatie moet verdergaan.
- * Dit is true/1 zolang de gebruiker de applicatie niet wilt afsluiten door op het kruisje te klikken.
+ * Dit is 1 zolang de gebruiker de applicatie niet wilt afsluiten door op het kruisje te klikken.
  */
 int should_continue = 1;
 
@@ -442,13 +442,13 @@ void read_input()
                 int size = (int)map_w * (int)map_h;
                 Coord stack[size];
                 int i = 0;
-                // We push de startcel op de stack.
+                // We pushen de startcel op de stack.
                 stack[i] = clicked;
                 i++;
 
                 while (i > 0)
                 {
-                    // iterateer zolang er cellen in de stack zitten
+                    // itereer zolang er cellen in de stack zitten
                     i--;
                     Coord current = stack[i];
 
@@ -491,6 +491,41 @@ void read_input()
                 if (!cell_is_uncovered(clicked))
                 {
                     cell_set_uncovered(clicked, true);
+                    changed = true;
+                }
+            }
+
+            // Check if all non-mine cells are uncovered
+            if (!game_won)
+            {
+                bool all_non_mines_uncovered = true;
+                for (int y = 0; y < map_h && all_non_mines_uncovered; ++y)
+                {
+                    for (int x = 0; x < map_w && all_non_mines_uncovered; ++x)
+                    {
+                        Coord c = coord_make(x, y);
+                        if (!MAP_AT(c).is_mine && !cell_is_uncovered(c))
+                        {
+                            all_non_mines_uncovered = false;
+                        }
+                    }
+                }
+                if (all_non_mines_uncovered)
+                {
+                    printf("All non-mine cells uncovered - you win!\n");
+                    // Start win-animatie: markeer game_won en initialiseer verwijder-lijst
+                    game_won = true;
+                    win_remaining = map_w * map_h;
+                    for (int y = 0; y < map_h; ++y)
+                    {
+                        for (int x = 0; x < map_w; ++x)
+                        {
+                            Coord c = coord_make(x, y);
+                            cell_set_removed(c, false); // nog niet verwijderd tijdens animatie
+                        }
+                    }
+                    // Seed de RNG met huidige ticks zodat de verwijdervolgorde random is
+                    srand((unsigned int)SDL_GetTicks());
                     changed = true;
                 }
             }
