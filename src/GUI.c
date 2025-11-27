@@ -1,7 +1,7 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "gui.h"
 #include <SDL2/SDL.h>
-#include <stdio.h>
 #include <string.h>
 #include "map.h"
 #include <stdbool.h>
@@ -43,7 +43,7 @@ int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w
      */
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
-        printf("Could not initialize SDL: %s\n", SDL_GetError());
+        printf("Could not initialize SDL2: %s\n", SDL_GetError());
         return 1;
     }
 
@@ -118,9 +118,9 @@ static int win_remaining = 0;
 static uint32_t win_last_remove = 0;
 static bool show_all = false; // via 'p' key
 
-int alloc_game_states(void)
+int init_states()
 {
-    // Initialize all Cell state fields to false
+    // We initialiseren alle cell states op false
     for (int y = 0; y < map_h; ++y)
     {
         for (int x = 0; x < map_w; ++x)
@@ -135,13 +135,10 @@ int alloc_game_states(void)
     return 0;
 }
 
-// Game states are now part of Cell, so nothing to free
-void free_game_states(void)
-{
-    // Cell states are freed when map is freed
-}
-
-// Bij elke interactie, wordt het speeldveld in de console geprint.
+/*
+ * Bij elke interactie, wordt het speeldveld in de console geprint.
+ * Zie HOC Slides 4_input_output dia 10 voor putchar.
+ */
 static void print_view()
 {
     for (int y = 0; y < map_h; ++y)
@@ -252,7 +249,7 @@ void read_input()
                 if (!mines_placed)
                 {
                     create_map();
-                    alloc_game_states();
+                    init_states();
                     add_mines(NULL);
                     mines_placed = true;
                 }
@@ -283,7 +280,7 @@ void read_input()
             if (!mines_placed)
             {
                 create_map();
-                alloc_game_states();
+                init_states();
                 add_mines(NULL);
                 mines_placed = true;
             }
@@ -322,7 +319,7 @@ void read_input()
             if (!mines_placed)
             {
                 create_map();
-                alloc_game_states();
+                init_states();
                 add_mines(NULL);
                 mines_placed = true;
             }
@@ -970,8 +967,8 @@ int load_file(const char *filename)
     }
     map_mines = mines;
 
-    // We initialiseren via alloc_game_states() de benodigde game_states.
-    if (alloc_game_states() != 0)
+    // We initialiseren via init_states() de benodigde game_states.
+    if (init_states() != 0)
     {
         free_lines(lines, count);
         free_map();

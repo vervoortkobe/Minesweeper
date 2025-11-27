@@ -44,8 +44,8 @@ int SDL_main(int argc, char *argv[])
             return 1;
         }
         create_map();
-        // We alloceren de nodige game states met alloc_game_states en printen een eventuele error.
-        if (alloc_game_states() != 0)
+        // We alloceren de nodige game states met init_states en printen een eventuele error.
+        if (init_states() != 0)
         {
             perror("Failed to allocate game states");
             return 1;
@@ -55,8 +55,8 @@ int SDL_main(int argc, char *argv[])
     else
     {
         create_map();
-        // We alloceren de nodige game states met alloc_game_states en printen een eventuele error.
-        if (alloc_game_states() != 0)
+        // We alloceren de nodige game states met init_states en printen een eventuele error.
+        if (init_states() != 0)
         {
             perror("Failed to allocate game states");
             return 1;
@@ -88,7 +88,6 @@ int SDL_main(int argc, char *argv[])
     }
     // Dealloceer al het gebruikte geheugen voor de gui, de game states en de map.
     free_gui();
-    free_game_states();
     free_map();
     return 0;
 }
