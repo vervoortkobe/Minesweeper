@@ -97,7 +97,7 @@ void free_lines(char **lines, int count)
  * - dia 58 voor fopen
  * - dia 57 voor fputc
  */
-int save_field(const char *filename, int w, int h, const char *map, const unsigned char *flagged, const unsigned char *uncovered)
+int save_field(const char *filename, int w, int h, const char *map, char *flagged, char *uncovered)
 {
     if (!filename || !map)
         return -1;

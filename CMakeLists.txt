@@ -11,8 +11,8 @@ set(SDL2_LIBRARIES "${SDL2_DIR}/lib/SDL2main.lib;${SDL2_DIR}/lib/SDL2.lib")
 include_directories(minesweeper ${SDL2_INCLUDE_DIRS})
 
 add_executable(minesweeper
-        GUI.c
-        GUI.h
+        gui.c
+        gui.h
         main.c
         map.c
         map.h

@@ -1,5 +1,5 @@
-#ifndef MINESWEEPER_GUI_H
-#define MINESWEEPER_GUI_H
+#ifndef MINESWEEPER_gui_H
+#define MINESWEEPER_gui_H
 
 #include <stdbool.h>
 #include "map.h"
@@ -13,7 +13,7 @@
 
 /*
  * De hoogte en breedte (in pixels) van de afbeeldingen voor de vakjes in het speelveld die getoond worden.
- * Als je andere afbeelding wil gebruiken in je GUI, zorg er dan voor dat deze
+ * Als je andere afbeelding wil gebruiken in je gui, zorg er dan voor dat deze
  * dimensies ook aangepast worden.
  */
 #define DEFAULT_IMAGE_SIZE 50
@@ -28,4 +28,4 @@ extern int should_continue;
 int load_file(const char *filename);
 void save_game();
 
-#endif // MINESWEEPER_GUI_H
+#endif // MINESWEEPER_gui_H

@@ -1,30 +1,28 @@
 SDL_INCLUDE ?= C:/Users/$(USERNAME)/scoop/apps/sdl2/current/include
-
-all: GUI.c main.c map.c args.c filehandler.c GUI.h map.h args.h filehandler.h
-	gcc -g -I"$(SDL_INCLUDE)" GUI.c main.c map.c args.c filehandler.c -o minesweeper.exe $(SDL_LIBS)
-
-out: GUI.o main.o map.o args.o filehandler.o
-	gcc GUI.o main.o map.o args.o filehandler.o -o minesweeper.exe $(SDL_LIBS)
-
 SDL_LIBS ?= C:/Users/$(USERNAME)/scoop/apps/sdl2/current/lib/SDL2main.lib C:/Users/$(USERNAME)/scoop/apps/sdl2/current/lib/SDL2.lib
 
-gui: GUI.c GUI.h
-	gcc -g -I"$(SDL_INCLUDE)" -c GUI.c -o GUI.o
+SRC_DIR = ./src
+OUT_DIR = ./out
+OUT_NAME = game.exe
 
-main: main.c GUI.h args.h map.h
-	gcc -g -I"$(SDL_INCLUDE)" -c main.c -o main.o
+CXX = gcc
+CC_FLAGS = -g -Wall -O3 -I"$(SDL_INCLUDE)"
+LINK_FLAGS = $(SDL_LIBS)
 
-map: map.c map.h
-	gcc -c map.c -o map.o
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(OUT_DIR)/%.o,$(SOURCES))
 
-args: args.c args.h
-	gcc -c args.c -o args.o
+all: main
 
-filehandler: filehandler.c filehandler.h
-	gcc -c filehandler.c -o filehandler.o
+main: $(OUT_DIR) $(OBJS)
+	$(CXX) $(OBJS) $(LINK_FLAGS) -o $(OUT_NAME)
 
-link: GUI.o main.o map.o args.o filehandler.o
-	gcc GUI.o main.o map.o args.o filehandler.o -o minesweeper.exe $(SDL_LIBS)
+$(OUT_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CXX) $(CC_FLAGS) -o $@ -c $^
 
+run: all
+	./$(OUT_NAME)
+	
 clean:
-	rm -f *.o minesweeper.exe
+	rm -rf $(OUT_DIR)
+	rm -f $(OUT_NAME)

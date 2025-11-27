@@ -1,10 +1,10 @@
-all: GUI.c main.c map.c args.c filehandler.c GUI.h map.h args.h filehandler.h
-	gcc GUI.c main.c map.c args.c filehandler.c `sdl2-config --cflags --libs` -o minesweeper
+all: gui.c main.c map.c args.c filehandler.c gui.h map.h args.h filehandler.h
+	gcc gui.c main.c map.c args.c filehandler.c `sdl2-config --cflags --libs` -o minesweeper
 
-GUI.o: GUI.c GUI.h
-	gcc -c GUI.c `sdl2-config --cflags` -o GUI.o
+gui.o: gui.c gui.h
+	gcc -c gui.c `sdl2-config --cflags` -o gui.o
 
-main.o: main.c GUI.h args.h map.h
+main.o: main.c gui.h args.h map.h
 	gcc -c main.c `sdl2-config --cflags` -o main.o
 
 map.o: map.c map.h
@@ -16,8 +16,8 @@ args.o: args.c args.h
 filehandler.o: filehandler.c filehandler.h
 	gcc -c filehandler.c `sdl2-config --cflags` -o filehandler.o
 
-link: GUI.o main.o map.o args.o filehandler.o
-	gcc GUI.o main.o map.o args.o filehandler.o `sdl2-config --libs` -o minesweeper
+link: gui.o main.o map.o args.o filehandler.o
+	gcc gui.o main.o map.o args.o filehandler.o `sdl2-config --libs` -o minesweeper
 
 clean:
 	rm -f *.o minesweeper

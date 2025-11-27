@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "GUI.h"
+#include "gui.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <string.h>
@@ -103,7 +103,7 @@ int should_continue = 1;
 
 /*
  * Dit is het venster dat getoond zal worden en waarin het speelveld weergegeven wordt.
- * Dit venster wordt aangemaakt bij het initialiseren van de GUI en wordt weer afgebroken wanneer het spel ten einde komt.
+ * Dit venster wordt aangemaakt bij het initialiseren van de gui en wordt weer afgebroken wanneer het spel ten einde komt.
  */
 static SDL_Window *window;
 
@@ -177,7 +177,7 @@ static void print_view()
 
 /*
  * Controleert of het gegeven event "relevant" is voor dit spel.
- * We gebruiken in deze GUI enkel muiskliks, toetsdrukken, en de "Quit" van het venster, dus enkel deze soorten events zijn "relevant".
+ * We gebruiken in deze gui enkel muiskliks, toetsdrukken, en de "Quit" van het venster, dus enkel deze soorten events zijn "relevant".
  */
 static int is_relevant_event(SDL_Event *event)
 {
@@ -190,7 +190,7 @@ static int is_relevant_event(SDL_Event *event)
            (event->type == SDL_QUIT);
 }
 
-// Deze functie vangt de input uit de GUI op (muiskliks en het indrukken van toetsen).
+// Deze functie vangt de input uit de gui op (muiskliks en het indrukken van toetsen).
 void read_input()
 {
     SDL_Event event;
@@ -200,14 +200,14 @@ void read_input()
     int cell_h = curr_win_h / grid_rows;
 
     /*
-     * Handelt alle input uit de GUI af.
-     * Telkens de speler een input in de GUI geeft (bv. een muisklik, muis bewegen, toetsindrukken
+     * Handelt alle input uit de gui af.
+     * Telkens de speler een input in de gui geeft (bv. een muisklik, muis bewegen, toetsindrukken
      * enz.) wordt er een 'event' (van het type SDL_Event) gegenereerd dat hier wordt afgehandeld.
      *
      * Niet al deze events zijn relevant voor jou: als de muis bv. gewoon wordt bewogen, hoef
      * je niet te reageren op dit event.
      * We gebruiken daarom de is_relevant_event-functie om niet-gebruikte events weg te
-     * filteren, zonder dat ze de applicatie vertragen of de GUI minder responsief maken.
+     * filteren, zonder dat ze de applicatie vertragen of de gui minder responsief maken.
      *
      * Zie ook https://wiki.libsdl.org/SDL_PollEvent
      */
@@ -682,7 +682,7 @@ void draw_window()
 /*
  * Deze functie initialiseert het venster en alle extra structuren die nodig zijn om het venster te manipuleren.
  * Ook wordt de display size van het te gebruiken scherm hier berekend.
- * Op deze manier kunnen we de GUI in het midden van het scherm zetten bij het opstarten van het spel.
+ * Op deze manier kunnen we de gui in het midden van het scherm zetten bij het opstarten van het spel.
  * Zie SDL2 documentatie:
  * - https://wiki.libsdl.org/SDL2/SDL_GetDesktopDisplayMode voor SDL_GetDesktopDisplayMode
  * - https://wiki.libsdl.org/SDL2/SDL_Log voor SDL_Log
