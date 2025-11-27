@@ -26,16 +26,16 @@ int SDL_main(int argc, char *argv[])
     {
         if (load_file(args.file) != 0)
         {
-            fprintf(stderr, "Failed to load map from %s\n", args.file);
+            fprintf(stderr, "Failed to load field from %s\n", args.file);
             return 1;
         }
-        /*
-         * Als er geen bestand wordt meegegeven, wordt er gekeken of er een breedte, hoogte en aantal mijnen worden meegegeven.
-         * Ook wordt er gecheckt of deze waarden geldig zijn (breedte en hoogte groter dan 0, aantal mijnen groter of gelijk aan 0).
-         * Indien ja, dan creëren we een map met init_map en create_map.
-         * Anders printen we de error.
-         */
     }
+    /*
+     * Als er geen bestand wordt meegegeven, wordt er gekeken of er een breedte, hoogte en aantal mijnen worden meegegeven.
+     * Ook wordt er gecheckt of deze waarden geldig zijn (breedte en hoogte groter dan 0, aantal mijnen groter of gelijk aan 0).
+     * Indien ja, dan creëren we een map met init_map en create_map.
+     * Anders printen we een error.
+     */
     else if (args.w > 0 && args.h > 0 && args.m > 0)
     {
         if (init_map(args.w, args.h, args.m) != 0)
@@ -50,8 +50,8 @@ int SDL_main(int argc, char *argv[])
             perror("Failed to allocate game states");
             return 1;
         }
-        // Als er geen bestand of breedte, hoogte of aantal mijnen wordt meegegeven, creëren we een standaard map van 10x10 met 10 mijnen.
     }
+    // Als er geen bestand of breedte, hoogte of aantal mijnen wordt meegegeven, creëren we een standaard map van 10x10 met 10 mijnen.
     else
     {
         create_map();
@@ -72,7 +72,7 @@ int SDL_main(int argc, char *argv[])
     int win_h = WINDOW_HEIGHT;
     if (determine_img_win_size(map_w, map_h, &img_size, &win_w, &win_h) != 0)
     {
-        // Indien deze functie faalt, gebruiken we de standaard waarden.
+        // Indien deze functie faalt, gebruiken we de standaardwaarden.
         win_w = WINDOW_WIDTH;
         win_h = WINDOW_HEIGHT;
     }
