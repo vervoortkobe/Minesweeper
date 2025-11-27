@@ -31,7 +31,7 @@ int init_map(int w, int h, int mines)
     return 0;
 }
 
-// De aanmgemaakte map wordt opgevuld met Cell structs (no mines, 0 neighbour).
+// De aanmgemaakte map wordt opgevuld met Cell structs (zonder mijnen).
 void create_map()
 {
     if (map == NULL)
@@ -67,24 +67,33 @@ void print_map()
 // Deze functie zal de map opvullen met nummers, rekening houdend met de reeds gelegde mijnen.
 void fill_map()
 {
+    /*
+     * We itereren over alle cellen op het speelveld.
+     * Voor elke cell die geen mijn is, worden de acht aangrenzende velden gecontroleerd op mijnen.
+     * Als er een mijn is gevonden, wordt de counter van de veld met 1 verhoogd.
+     */
     for (int x = 0; x < map_w; x++)
     {
         for (int y = 0; y < map_h; y++)
         {
+            /*
+             * Het aantal mijnen in de omgeving van een cell wordt opgeslagen in het `neighbour_mines` attribute van elke cell.
+             * Cellen die zelf een mijn zijn, worden overgeslagen
+             */
             Coord c = coord_make(x, y);
             if (MAP_AT(c).is_mine)
                 continue;
             int count = 0;
-            for (int dy = -1; dy <= 1; dy++)
+            for (int ay = -1; ay <= 1; ay++)
             {
-                for (int dx = -1; dx <= 1; dx++)
+                for (int ax = -1; ax <= 1; ax++)
                 {
-                    if (dx == 0 && dy == 0)
+                    if (ax == 0 && ay == 0)
                         continue;
-                    int ny = y + dy, nx = x + dx;
-                    if (ny >= 0 && ny < map_h && nx >= 0 && nx < map_w)
+                    int by = y + ay, bx = x + ax;
+                    if (by >= 0 && by < map_h && bx >= 0 && bx < map_w)
                     {
-                        Coord nc = coord_make(nx, ny);
+                        Coord nc = coord_make(bx, by);
                         if (MAP_AT(nc).is_mine)
                             count++;
                     }

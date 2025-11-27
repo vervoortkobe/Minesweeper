@@ -4,18 +4,11 @@
 #include <stdbool.h>
 #include "map.h"
 
-/*
- * De hoogte en breedte van het venster (in pixels).
- * Deze dimensies zijn arbitrair gekozen. Deze dimensies hangen mogelijk af van de grootte van het speelveld.
- */
+// De hoogte en breedte van het venster (in pixels).
 #define WINDOW_HEIGHT 500
 #define WINDOW_WIDTH 600
 
-/*
- * De hoogte en breedte (in pixels) van de afbeeldingen voor de vakjes in het speelveld die getoond worden.
- * Als je andere afbeelding wil gebruiken in je gui, zorg er dan voor dat deze
- * dimensies ook aangepast worden.
- */
+// De hoogte en breedte (in pixels) van de afbeeldingen voor de vakjes in het speelveld die getoond worden.
 #define DEFAULT_IMAGE_SIZE 50
 int determine_img_win_size(int cols, int rows, int *out_image_size, int *out_window_w, int *out_window_h);
 void initialize_gui(int window_width, int window_height);

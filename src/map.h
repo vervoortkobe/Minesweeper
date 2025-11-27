@@ -28,6 +28,7 @@ typedef struct
 
 #define COORD_IDX(c, w) ((c).y * (w) + (c).x)
 
+// Helperfuncties voor het object Coord
 static inline Coord coord_make(int x, int y)
 {
     return (Coord){x, y};
