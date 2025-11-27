@@ -1,5 +1,5 @@
-#ifndef MINESWEEPER_gui_H
-#define MINESWEEPER_gui_H
+#ifndef MINESWEEPER_GUI_H
+#define MINESWEEPER_GUI_H
 
 #include <stdbool.h>
 #include "map.h"
@@ -20,4 +20,4 @@ extern int should_continue;
 int load_file(const char *filename);
 void save_game();
 
-#endif // MINESWEEPER_gui_H
+#endif // MINESWEEPER_GUI_H

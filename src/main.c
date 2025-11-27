@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "gui.h"
+#include "GUI.h"
 #include "args.h"
 #include "map.h"
 
@@ -77,7 +77,7 @@ int SDL_main(int argc, char *argv[])
         win_h = WINDOW_HEIGHT;
     }
     /*
-     * Daarna initialiseren we de gui met de juiste window breedte en hoogte.
+     * Daarna initialiseren we de GUI met de juiste window breedte en hoogte.
      * De game loop wordt dan gestart, waarin we blijven tekenen en input lezen zolang should_continue waar is.
      */
     initialize_gui(win_w, win_h);
@@ -86,7 +86,7 @@ int SDL_main(int argc, char *argv[])
         draw_window();
         read_input();
     }
-    // Dealloceer al het gebruikte geheugen voor de gui, de game states en de map.
+    // Dealloceer al het gebruikte geheugen voor de GUI, de game states en de map.
     free_gui();
     free_map();
     return 0;
