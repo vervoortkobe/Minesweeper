@@ -521,12 +521,6 @@ void read_input()
                             cell_set_removed(c, false); // nog niet verwijderd tijdens animatie
                         }
                     }
-                    /*
-                     * Seed de RNG met huidige ticks zodat de verwijdervolgorde random is.
-                     * Zie SDL2 documentatie:
-                     * - https://wiki.libsdl.org/SDL2/SDL_GetTicks voor SDL_GetTicks
-                     */
-                    srand((unsigned int)SDL_GetTicks());
                     changed = true;
                 }
             }
@@ -541,17 +535,22 @@ void read_input()
     return;
 }
 
+// Deze functie tekent het speelveld met alle afbeeldingen e.d.
 void draw_window()
 {
+    // We berekenen de grootte van elke cell op basis van de rij en kolom aantallen en de huidige window grootte.
     int grid_rows = map_h, grid_cols = map_w;
     int cell_w = curr_win_w / grid_cols;
     int cell_h = curr_win_h / grid_rows;
 
+    // We wissen de renderbuffer met een witte achtergrond.
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
     if (!game_won && !game_lost)
     {
+
+        // We tekenen het muiscursor hover effect.
         int marker_col = mouse_x / cell_w;
         int marker_row = mouse_y / cell_h;
         if (marker_col >= 0 && marker_col < grid_cols && marker_row >= 0 && marker_row < grid_rows)
@@ -565,24 +564,22 @@ void draw_window()
         }
     }
 
+    // We voeren de win-animatie uit door willekeurige cellen te verwijderen.
     for (int row = 0; row < grid_rows; ++row)
     {
         for (int col = 0; col < grid_cols; ++col)
         {
             Coord c = coord_make(col, row);
             SDL_Rect rect = {col * cell_w, row * cell_h, cell_w, cell_h};
-            // During win animation, removed cells disappear; otherwise render normally
+            // Tijdens win-animatie verdwijnen verwijderde cellen; anders normaal renderen.
             if (game_won && cell_is_removed(c))
             {
-                continue; // disappeared
+                continue; // cell is al verwijderd
             }
 
-            // If user asked to show mines, draw them regardless of uncovered state
+            // Als de gebruiker heeft gevraagd om mijnen te tonen, dan worden ze hier getekend, zelfs als ze nog niet uncovered zijn.
             if (show_mines && MAP_AT(c).is_mine)
             {
-                // if win animation is active and cell has been removed, skip drawing
-                if (game_won && cell_is_removed(c))
-                    continue;
                 SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
                 continue;
             }
@@ -591,23 +588,24 @@ void draw_window()
             {
                 if (MAP_AT(c).is_mine)
                 {
-                    // If player lost and this is the losing mine, make it blink red every second
+                    // Als de speler verloren heeft, laten we de mijn waarop laatst geklikt werd rood knipperen.
                     if (game_lost && coord_equals(c, losing_coord))
                     {
-                        uint32_t t = SDL_GetTicks();
-                        uint32_t elapsed = t - lose_start_time;
-                        int visible = ((elapsed / 1000) % 2) == 0; // blink every second relative to loss time
+                        int time = SDL_GetTicks();
+                        int elapsed = time - lose_start_time;
+                        int visible = ((elapsed / 1000) % 2) == 0; // knipper elke seconde relatief tov start-verlies tijd
                         if (visible)
                         {
-                            // tint red for the losing mine
+                            // rode tint
                             SDL_SetTextureColorMod(digit_mine_texture, 255, 0, 0);
                             SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
-                            // reset tint
+                            // reset de rode tint
                             SDL_SetTextureColorMod(digit_mine_texture, 255, 255, 255);
                         }
                         else
                         {
                             // when not visible, draw the covered texture so the marker or previous frames are hidden
+                            // Wanneer de cell covered is, tekenen we de covered texture, zodat de hover marker of vorige frames terug worden verborgen.
                             if (digit_covered_texture)
                                 SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
                         }
@@ -619,10 +617,10 @@ void draw_window()
                 }
                 else
                 {
-                    int idx = MAP_AT(c).neighbour_mines;
-                    if (idx >= 0 && idx <= 8 && digit_textures[idx])
+                    int i = MAP_AT(c).neighbour_mines;
+                    if (i >= 0 && i <= 8 && digit_textures[i])
                     {
-                        SDL_RenderCopy(renderer, digit_textures[idx], NULL, &rect);
+                        SDL_RenderCopy(renderer, digit_textures[i], NULL, &rect);
                     }
                     else
                     {
@@ -644,13 +642,13 @@ void draw_window()
         }
     }
 
-    // If win animation running, remove a random non-removed cell periodically
+    // We voeren de winanimatie uit door willekeurige cellen te verwijderen.
     if (game_won && win_remaining > 0)
     {
-        uint32_t now = SDL_GetTicks();
+        int now = SDL_GetTicks();
         if (now - win_last_remove >= 20)
         {
-            // pick a random remaining cell
+            // Kies een random overblijvende cel om te verwijderen.
             int tries = 0;
             while (tries < 1000 && win_remaining > 0)
             {
@@ -665,7 +663,7 @@ void draw_window()
             }
             win_last_remove = now;
         }
-        // when all removed, close the game
+        // Wanneer alle cellen verwijderd zijn, wordt het spel afgesloten.
         if (win_remaining <= 0)
         {
             should_continue = 0;
