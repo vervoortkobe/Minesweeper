@@ -493,7 +493,8 @@ void read_input()
             }
 
             // We checken of de speler alle nummer cellen als uncovered heeft aangeklikt -> win
-            if (!game_won)
+            // Maar alleen als show_all niet actief is.
+            if (!game_won && !show_all)
             {
                 bool all_number_cells_uncovered = true;
                 for (int y = 0; y < map_h && all_number_cells_uncovered; ++y)
