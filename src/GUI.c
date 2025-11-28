@@ -6,6 +6,7 @@
 #include "map.h"
 #include <stdbool.h>
 #include "filehandler.h"
+#include "utils.h"
 
 /*
  * Deze renderer wordt gebruikt om figuren in het venster te tekenen.

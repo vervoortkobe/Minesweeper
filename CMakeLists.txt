@@ -20,5 +20,7 @@ add_executable(game
         args.h
         filehandler.c
         filehandler.h
+        utils.c
+        utils.h
 )
 target_link_libraries(game ${SDL2_LIBRARIES})

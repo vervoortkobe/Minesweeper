@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include "map.h"
+#include "utils.h"
 
 // Instantieer de standaardwaarden van het speelveld.
 int map_w = 10;
