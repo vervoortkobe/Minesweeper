@@ -410,8 +410,11 @@ void read_input()
             }
             if (MAP_AT(clicked).is_mine)
             {
-                // speler klikte op een mijn -> game over
-                if (!game_lost)
+                /*
+                 * De speler klikte op een mijn -> game over
+                 * Maar niet als show_mines actief is.
+                 */
+                if (!game_lost && !show_mines)
                 {
                     game_lost = true;
                     losing_coord = clicked;
@@ -492,8 +495,10 @@ void read_input()
                 }
             }
 
-            // We checken of de speler alle nummer cellen als uncovered heeft aangeklikt -> win
-            // Maar alleen als show_all niet actief is.
+            /*
+             * We checken of de speler alle nummer cellen als uncovered heeft aangeklikt -> win
+             * Maar alleen als show_all niet actief is.
+             */
             if (!game_won && !show_all)
             {
                 bool all_number_cells_uncovered = true;
