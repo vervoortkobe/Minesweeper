@@ -724,9 +724,9 @@ void initialize_textures()
      * geeft SDL_LoadBMP een NULL-pointer terug.
      */
     const char *num_files[9] = {
-        "src/Images/0.bmp", "src/Images/1.bmp", "src/Images/2.bmp",
-        "src/Images/3.bmp", "src/Images/4.bmp", "src/Images/5.bmp",
-        "src/Images/6.bmp", "src/Images/7.bmp", "src/Images/8.bmp"};
+        "Images/0.bmp", "Images/1.bmp", "Images/2.bmp",
+        "Images/3.bmp", "Images/4.bmp", "Images/5.bmp",
+        "Images/6.bmp", "Images/7.bmp", "Images/8.bmp"};
     for (int i = 0; i < 9; ++i)
     {
         SDL_Surface *s = SDL_LoadBMP(num_files[i]);
