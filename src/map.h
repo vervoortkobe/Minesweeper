@@ -55,7 +55,7 @@ extern Cell *map;
 
 #define MAP_AT(coord) (map[coord_index(coord)])
 
-// Deze functies maken het gemakkelijker om de state van een cel te veranderen/op te vragen.
+// Deze functies maken het gemakkelijker om de state van een cell te veranderen/op te vragen.
 static inline bool cell_is_uncovered(Coord c)
 {
     return MAP_AT(c).uncovered;
