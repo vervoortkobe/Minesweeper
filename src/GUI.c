@@ -1,12 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "GUI.h"
 #include <SDL2/SDL.h>
 #include <string.h>
-#include "map.h"
 #include <stdbool.h>
+#include "GUI.h"
+#include "map.h"
 #include "filehandler.h"
-#include "utils.h"
 
 /*
  * Deze renderer wordt gebruikt om figuren in het venster te tekenen.
