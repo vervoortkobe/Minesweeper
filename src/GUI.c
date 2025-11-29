@@ -56,12 +56,15 @@ int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w
         return 0;
     }
 
-    // Use default image size and calculate window dimensions
+    /*
+     * De window afmetingen worden berekend d.m.v. aantal kolommen/rijen * image size.
+     * Bereken de maximale window grootte d.m.v. de DEFAULT_IMAGE_SIZE
+     */
     int img_size = DEFAULT_IMAGE_SIZE;
     int win_width = cols * img_size;
     int win_height = rows * img_size;
 
-    // If window is too large for the screen, scale down
+    // Als de window groter is dan het scherm, passen we de image size aan.
     if (win_width > dm.w || win_height > dm.h)
     {
         int max_w = dm.w / cols;
@@ -427,20 +430,20 @@ void read_input()
                 {
                     // itereer zolang er cellen in de stack zitten
                     i--;
-                    int cur_y = stack_y[i];
-                    int cur_x = stack_x[i];
+                    int curr_y = stack_y[i];
+                    int curr_x = stack_x[i];
 
                     // bounds check
-                    if (cur_x < 0 || cur_x >= map_w || cur_y < 0 || cur_y >= map_h)
+                    if (curr_x < 0 || curr_x >= map_w || curr_y < 0 || curr_y >= map_h)
                         continue;
                     // als de cell al uncovered is, slaan we ze over
-                    if (map[cur_y][cur_x].uncovered)
+                    if (map[curr_y][curr_x].uncovered)
                         continue;
                     // uncover de cell
-                    map[cur_y][cur_x].uncovered = true;
+                    map[curr_y][curr_x].uncovered = true;
                     changed = true;
                     // als de cell ook 0 aangrenzende mijnen heeft, pushen we alle niet-onthulde en niet-gevlagde buurcellen
-                    if (map[cur_y][cur_x].neighbour_mines == 0)
+                    if (map[curr_y][curr_x].neighbour_mines == 0)
                     {
                         // we pushen alle 8 buurcellen
                         for (int diag_x = -1; diag_x <= 1; diag_x++)
@@ -449,8 +452,8 @@ void read_input()
                             {
                                 if (diag_x == 0 && diag_y == 0)
                                     continue;
-                                int neighbor_x = cur_x + diag_x;
-                                int neighbor_y = cur_y + diag_y;
+                                int neighbor_x = curr_x + diag_x;
+                                int neighbor_y = curr_y + diag_y;
                                 if (neighbor_x < 0 || neighbor_x >= map_w || neighbor_y < 0 || neighbor_y >= map_h)
                                     continue;
                                 if (!map[neighbor_y][neighbor_x].uncovered && !map[neighbor_y][neighbor_x].flagged)
