@@ -497,7 +497,7 @@ void read_input()
                 }
                 if (all_number_cells_uncovered)
                 {
-                    printf("All numbers cells uncovered - you win!\n");
+                    printf("All number cells uncovered - you win!\n");
                     // Start win-animatie: markeer game_won en initialiseer verwijder-lijst
                     game_won = true;
                     win_remaining = map_width * map_height;
@@ -590,7 +590,6 @@ void draw_window()
                         }
                         else
                         {
-                            // when not visible, draw the covered texture so the marker or previous frames are hidden
                             // Wanneer de cell covered is, tekenen we de covered texture, zodat de hover marker of vorige frames terug worden verborgen.
                             if (digit_covered_texture)
                                 SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);

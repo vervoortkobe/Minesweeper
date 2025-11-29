@@ -4,7 +4,7 @@
 #include "map.h"
 
 // Beginfunctie van de gehele applicatie. Hierin worden alle andere functies aangeroepen.
-int SDL_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     /*
      * Args: we instantiëren de args variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
