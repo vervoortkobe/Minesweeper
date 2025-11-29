@@ -1,27 +1,34 @@
-SDL_INCLUDE ?= C:/Users/$(USERNAME)/scoop/apps/sdl2/current/include
-SDL_LIBS ?= C:/Users/$(USERNAME)/scoop/apps/sdl2/current/lib/SDL2main.lib C:/Users/$(USERNAME)/scoop/apps/sdl2/current/lib/SDL2.lib
-
 SRC_DIR = ./src
 OUT_DIR = ./out
-OUT_NAME = game.exe
+OUT_NAME = game
 
-CXX = gcc
-CC_FLAGS = -g -Wall -O3 -I"$(SDL_INCLUDE)"
-LINK_FLAGS = $(SDL_LIBS)
+CFLAGS = `sdl2-config --cflags`
+LIB_FLAGS = `sdl2-config --libs`
 
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OUT_DIR)/%.o,$(SOURCES))
+ALL_OBJS = $(OUT_DIR)/main.o $(OUT_DIR)/args.o $(OUT_DIR)/filehandler.o $(OUT_DIR)/GUI.o $(OUT_DIR)/map.o
 
-all: main
+all: $(OUT_DIR) $(OUT_NAME)
 
-main: $(OUT_DIR) $(OBJS)
-	$(CXX) $(OBJS) $(LINK_FLAGS) -o $(OUT_NAME)
+$(OUT_NAME): $(ALL_OBJS)
+	gcc $(ALL_OBJS) $(LIB_FLAGS) -o $@
 
-$(OUT_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CXX) $(CC_FLAGS) -o $@ -c $^
+$(OUT_DIR)/main.o: $(SRC_DIR)/main.c $(SRC_DIR)/args.h $(SRC_DIR)/map.h $(SRC_DIR)/GUI.h $(SRC_DIR)/filehandler.h
+	gcc $(CFLAGS) -c $< -o $@
 
-run: all
+$(OUT_DIR)/args.o: $(SRC_DIR)/args.c $(SRC_DIR)/args.h
+	gcc $(CFLAGS) -c $< -o $@
+
+$(OUT_DIR)/filehandler.o: $(SRC_DIR)/filehandler.c $(SRC_DIR)/filehandler.h
+	gcc $(CFLAGS) -c $< -o $@
+
+$(OUT_DIR)/GUI.o: $(SRC_DIR)/GUI.c $(SRC_DIR)/GUI.h $(SRC_DIR)/map.h
+	gcc $(CFLAGS) -c $< -o $@
+
+$(OUT_DIR)/map.o: $(SRC_DIR)/map.c $(SRC_DIR)/map.h
+	gcc $(CFLAGS) -c $< -o $@
+
+run: $(OUT_NAME)
 	./$(OUT_NAME)
-	
+
 clean:
-	rm -f *.o game.exe
+	rm -rf $(OUT_DIR) $(OUT_NAME)
