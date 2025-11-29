@@ -6,23 +6,23 @@
 #include "utils.h"
 
 // Instantieer de standaardwaarden van het speelveld.
-int map_w = 10;
-int map_h = 10;
+int map_width = 10;
+int map_height = 10;
 int map_mines = 10;
-// Instantieer een standaard speelveld met een pointer naar Cell structs.
+// Instantieer een speelveld als 2D array van Cell structs.
 Cell **map = NULL;
 
 /*
  * De waarden van w en h worden gecheckt of deze mogelijk zijn.
- * Zo ja, worden deze toegekend aan map_w en map_h.
- * We alloceren geheugen voor de standaard map van size map_w * map_h.
+ * Zo ja, worden deze toegekend aan map_width en map_height.
+ * We alloceren geheugen voor de standaard map van size map_width * map_height.
  */
 int init_map(int w, int h, int mines)
 {
     if (w <= 0 || h <= 0)
         return -1;
-    map_w = w;
-    map_h = h;
+    map_width = w;
+    map_height = h;
     map_mines = mines;
     if (map)
         free_map();
@@ -53,10 +53,10 @@ int init_map(int w, int h, int mines)
 void create_map()
 {
     if (map == NULL)
-        init_map(map_w, map_h, map_mines);
-    for (int y = 0; y < map_h; y++)
+        init_map(map_width, map_height, map_mines);
+    for (int y = 0; y < map_height; y++)
     {
-        for (int x = 0; x < map_w; x++)
+        for (int x = 0; x < map_width; x++)
         {
             map[y][x].is_mine = false;
             map[y][x].neighbour_mines = 0;
@@ -67,9 +67,9 @@ void create_map()
 // Om de map in de console uit te printen.
 void print_map()
 {
-    for (int y = 0; y < map_h; y++)
+    for (int y = 0; y < map_height; y++)
     {
-        for (int x = 0; x < map_w; x++)
+        for (int x = 0; x < map_width; x++)
         {
             if (map[y][x].is_mine)
                 printf("M ");
@@ -88,9 +88,9 @@ void fill_map()
      * Voor elke cell die geen mijn is, worden de acht aangrenzende velden gecontroleerd op mijnen.
      * Als er een mijn is gevonden, wordt de counter van de veld met 1 verhoogd.
      */
-    for (int y = 0; y < map_h; y++)
+    for (int y = 0; y < map_height; y++)
     {
-        for (int x = 0; x < map_w; x++)
+        for (int x = 0; x < map_width; x++)
         {
             /*
              * Het aantal mijnen in de omgeving van een cell wordt opgeslagen in het `neighbour_mines` attribute van elke cell.
@@ -106,7 +106,7 @@ void fill_map()
                     if (ax == 0 && ay == 0)
                         continue;
                     int by = y + ay, bx = x + ax;
-                    if (by >= 0 && by < map_h && bx >= 0 && bx < map_w)
+                    if (by >= 0 && by < map_height && bx >= 0 && bx < map_width)
                     {
                         if (map[by][bx].is_mine)
                             count++;
@@ -128,8 +128,8 @@ void add_mines(int exclude_x, int exclude_y)
     int placed = 0;
     while (placed < map_mines)
     {
-        int x = rand() % map_w;
-        int y = rand() % map_h;
+        int x = rand() % map_width;
+        int y = rand() % map_height;
         if (exclude_x >= 0 && x == exclude_x && y == exclude_y)
             continue;
         if (!map[y][x].is_mine)
@@ -146,7 +146,7 @@ void free_map()
 {
     if (map)
     {
-        for (int i = 0; i < map_h; i++)
+        for (int i = 0; i < map_height; i++)
         {
             if (map[i])
                 free(map[i]);
