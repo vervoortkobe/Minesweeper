@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "GUI.h"
 #include <SDL2/SDL.h>
 #include <string.h>
-#include "map.h"
 #include <stdbool.h>
+#include "GUI.h"
+#include "map.h"
 #include "filehandler.h"
 
 /*
@@ -23,16 +23,16 @@ static SDL_Texture *digit_mine_texture = NULL;
 static SDL_DisplayMode dm;
 
 // Standaard window afmetingen
-static int curr_win_w = WINDOW_WIDTH;
-static int curr_win_h = WINDOW_HEIGHT;
+static int curr_window_width = WINDOW_WIDTH;
+static int curr_window_height = WINDOW_HEIGHT;
 
 /*
  * Deze functie bepaalt de beste window en image size op basis van het aantal kolommen en rijen.
  * Het resultaat wordt via de out-parameters teruggegeven.
  */
-int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w, int *out_win_h)
+int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_window_width, int *out_window_height)
 {
-    if (!out_img_size || !out_win_w || !out_win_h)
+    if (!out_img_size || !out_window_width || !out_window_height)
         return -1;
     if (cols <= 0 || rows <= 0)
         return -1;
@@ -47,43 +47,38 @@ int determine_img_win_size(int cols, int rows, int *out_img_size, int *out_win_w
         return 1;
     }
 
+    // We vragen de display mode van het scherm op en definiëren enkele standaardafmetingen.
     if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
     {
         *out_img_size = DEFAULT_IMAGE_SIZE;
-        *out_win_w = cols * (*out_img_size);
-        *out_win_h = rows * (*out_img_size);
+        *out_window_width = cols * (*out_img_size);
+        *out_window_height = rows * (*out_img_size);
         return 0;
     }
 
-    // voorgestelde afmetingen voor afbeeldingen
-    int pref_sizes[] = {100, 75, 50};
-    int chosen = -1;
-    for (int i = 0; i < 3; ++i)
+    /*
+     * De window afmetingen worden berekend d.m.v. aantal kolommen/rijen * image size.
+     * Bereken de maximale window grootte d.m.v. de DEFAULT_IMAGE_SIZE
+     */
+    int img_size = DEFAULT_IMAGE_SIZE;
+    int window_widthidth = cols * img_size;
+    int window_heighteight = rows * img_size;
+
+    // Als de window groter is dan het scherm, passen we de image size aan.
+    if (window_widthidth > dm.w || window_heighteight > dm.h)
     {
-        int size = pref_sizes[i];
-        // window afmetingen worden berekend d.m.v. aantal kolommen/rijen * image size
-        int win_width = cols * size;
-        int win_height = rows * size;
-        if (win_width <= dm.w && win_height <= dm.h)
-        {
-            chosen = size;
-            break;
-        }
-    }
-    if (chosen == -1)
-    {
-        // Bereken de maximale window grootte, afhankelijk van het scherm
-        int max_w = dm.w / cols;
-        int max_h = dm.h / rows;
-        int size = max_w < max_h ? max_w : max_h;
-        if (size < 20)
-            size = 20; // minimale grootte
-        chosen = size;
+        int max_width = dm.w / cols;
+        int max_height = dm.h / rows;
+        img_size = max_width < max_height ? max_width : max_height;
+        if (img_size < 20)
+            img_size = 20; // minimale grootte
+        window_widthidth = cols * img_size;
+        window_heighteight = rows * img_size;
     }
 
-    *out_img_size = chosen;
-    *out_win_w = cols * chosen;
-    *out_win_h = rows * chosen;
+    *out_img_size = img_size;
+    *out_window_width = window_widthidth;
+    *out_window_height = window_heighteight;
 
     return 0;
 }
@@ -111,7 +106,7 @@ static SDL_Window *window;
 bool mines_placed = false;      // of de mijnen reeds geplaatst zijn via add_mines
 static bool show_mines = false; // via 'b' key
 static bool game_lost = false;
-static Coord losing_coord = {-1, -1};
+static int losing_col = -1, losing_row = -1;
 static uint32_t lose_start_time = 0;
 static bool game_won = false;
 static int win_remaining = 0;
@@ -121,15 +116,14 @@ static bool show_all = false; // via 'p' key
 int init_states()
 {
     // We initialiseren alle cell states op false
-    for (int y = 0; y < map_h; ++y)
+    for (int y = 0; y < map_height; ++y)
     {
-        for (int x = 0; x < map_w; ++x)
+        for (int x = 0; x < map_width; ++x)
         {
-            Coord c = coord_make(x, y);
-            cell_set_uncovered(c, false);
-            cell_set_flagged(c, false);
-            cell_set_removed(c, false);
-            cell_set_saved_uncovered(c, false);
+            map[y][x].uncovered = false;
+            map[y][x].flagged = false;
+            map[y][x].removed = false;
+            map[y][x].saved_uncovered = false;
         }
     }
     return 0;
@@ -141,23 +135,22 @@ int init_states()
  */
 static void print_view()
 {
-    for (int y = 0; y < map_h; ++y)
+    for (int y = 0; y < map_height; ++y)
     {
-        for (int x = 0; x < map_w; ++x)
+        for (int x = 0; x < map_width; ++x)
         {
-            Coord c = coord_make(x, y);
-            if (cell_is_uncovered(c))
+            if (map[y][x].uncovered)
             {
-                if (MAP_AT(c).is_mine)
+                if (map[y][x].is_mine)
                     putchar('M');
                 else
-                    putchar('0' + MAP_AT(c).neighbour_mines);
+                    putchar('0' + map[y][x].neighbour_mines);
             }
-            else if (cell_is_flagged(c))
+            else if (map[y][x].flagged)
             {
                 putchar('F');
             }
-            else if (show_mines && MAP_AT(c).is_mine)
+            else if (show_mines && map[y][x].is_mine)
             {
                 putchar('M');
             }
@@ -192,9 +185,9 @@ void read_input()
 {
     SDL_Event event;
     bool changed = false;
-    int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = curr_win_w / grid_cols;
-    int cell_h = curr_win_h / grid_rows;
+    int grid_rows = map_height, grid_cols = map_width;
+    int cell_w = curr_window_width / grid_cols;
+    int cell_h = curr_window_height / grid_rows;
 
     /*
      * Handelt alle input uit de GUI af.
@@ -238,39 +231,30 @@ void read_input()
             if (show_all)
             {
                 // sla tijdelijk vorige uncovered state op
-                for (int x = 0; x < map_w; ++x)
-                    for (int y = 0; y < map_h; ++y)
-                    {
-                        Coord c = coord_make(x, y);
-                        cell_set_saved_uncovered(c, cell_is_uncovered(c));
-                    }
+                for (int x = 0; x < map_width; ++x)
+                    for (int y = 0; y < map_height; ++y)
+                        map[y][x].saved_uncovered = map[y][x].uncovered;
                 // Voor de eerste muisklik, zijn er nog geen mijnen geplaatst.
                 // Voordat we alles uncoveren, moeten we dus eerst de mijnen plaatsen.
                 if (!mines_placed)
                 {
                     create_map();
                     init_states();
-                    add_mines(NULL);
+                    add_mines(-1, -1);
                     mines_placed = true;
                 }
                 // uncover alles tijdelijk
-                for (int x = 0; x < map_w; ++x)
-                    for (int y = 0; y < map_h; ++y)
-                    {
-                        Coord c = coord_make(x, y);
-                        cell_set_uncovered(c, true);
-                    }
+                for (int x = 0; x < map_width; ++x)
+                    for (int y = 0; y < map_height; ++y)
+                        map[y][x].uncovered = true;
                 print_view();
             }
             else
             {
                 // terugzetten van vorige uncovered state
-                for (int x = 0; x < map_w; ++x)
-                    for (int y = 0; y < map_h; ++y)
-                    {
-                        Coord c = coord_make(x, y);
-                        cell_set_uncovered(c, cell_is_saved_uncovered(c));
-                    }
+                for (int x = 0; x < map_width; ++x)
+                    for (int y = 0; y < map_height; ++y)
+                        map[y][x].uncovered = map[y][x].saved_uncovered;
             }
             changed = true;
         }
@@ -281,7 +265,7 @@ void read_input()
             {
                 create_map();
                 init_states();
-                add_mines(NULL);
+                add_mines(-1, -1);
                 mines_placed = true;
             }
             show_mines = !show_mines;
@@ -320,21 +304,19 @@ void read_input()
             {
                 create_map();
                 init_states();
-                add_mines(NULL);
+                add_mines(-1, -1);
                 mines_placed = true;
             }
 
-            Coord clicked = coord_make(clicked_col, clicked_row);
-            bool currently_flagged = cell_is_flagged(clicked);
+            bool currently_flagged = map[clicked_row][clicked_col].flagged;
 
             // tellen hoeveel vlaggen er al zijn geplaatst
             int total_flags = 0;
-            for (int y = 0; y < map_h; ++y)
+            for (int y = 0; y < map_height; ++y)
             {
-                for (int x = 0; x < map_w; ++x)
+                for (int x = 0; x < map_width; ++x)
                 {
-                    Coord c = coord_make(x, y);
-                    if (cell_is_flagged(c))
+                    if (map[y][x].flagged)
                         total_flags++;
                 }
             }
@@ -346,8 +328,8 @@ void read_input()
             }
             else
             {
-                cell_set_flagged(clicked, !currently_flagged);
-                printf("Right click at (%d, %d) -> cell (%d, %d) flag: %d\n", mouse_x, mouse_y, clicked_col, clicked_row, (int)cell_is_flagged(clicked));
+                map[clicked_row][clicked_col].flagged = !map[clicked_row][clicked_col].flagged;
+                printf("Right click at (%d, %d) -> cell (%d, %d) flag: %d\n", mouse_x, mouse_y, clicked_col, clicked_row, (int)map[clicked_row][clicked_col].flagged);
                 changed = true;
             }
 
@@ -357,15 +339,14 @@ void read_input()
              */
             int correct_flags = 0;
             int flagged_count = 0;
-            for (int y = 0; y < map_h; ++y)
+            for (int y = 0; y < map_height; ++y)
             {
-                for (int x = 0; x < map_w; ++x)
+                for (int x = 0; x < map_width; ++x)
                 {
-                    Coord c = coord_make(x, y);
-                    if (cell_is_flagged(c))
+                    if (map[y][x].flagged)
                     {
                         flagged_count++;
-                        if (MAP_AT(c).is_mine)
+                        if (map[y][x].is_mine)
                             correct_flags++;
                     }
                 }
@@ -376,13 +357,12 @@ void read_input()
                 printf("All mines flagged - you win!\n");
                 // Start win-animatie: markeer game_won en initialiseer verwijder-lijst
                 game_won = true;
-                win_remaining = map_w * map_h;
-                for (int y = 0; y < map_h; ++y)
+                win_remaining = map_width * map_height;
+                for (int y = 0; y < map_height; ++y)
                 {
-                    for (int x = 0; x < map_w; ++x)
+                    for (int x = 0; x < map_width; ++x)
                     {
-                        Coord c = coord_make(x, y);
-                        cell_set_removed(c, false); // nog niet verwijderd tijdens animatie
+                        map[y][x].removed = false; // nog niet verwijderd tijdens animatie
                     }
                 }
                 // Seed de RNG met huidige ticks zodat de verwijdervolgorde random is.
@@ -393,73 +373,77 @@ void read_input()
         else
         {
             /*
-             * Linker muisknop: ontdek cell.
+             * Linker muisknop klik: uncover cell.
              * Bij de eerste klik plaatsen we eerst de mijnen (exclusief de aangeklikte cell).
              */
             printf("Left click at (%d, %d) -> cell (%d, %d)\n", mouse_x, mouse_y, clicked_col, clicked_row);
-            Coord clicked = coord_make(clicked_col, clicked_row);
 
             if (!mines_placed)
             {
                 // Dit coördinaat sluiten we uit bij het plaatsen van de mijnen, aangezien de speler hier net als eerste geklikt heeft.
-                add_mines(&clicked);
+                add_mines(clicked_col, clicked_row);
                 print_map();
                 printf("\n");
                 mines_placed = true;
                 changed = true;
             }
-            if (MAP_AT(clicked).is_mine)
+            if (map[clicked_row][clicked_col].is_mine)
             {
-                // speler klikte op een mijn -> game over
-                if (!game_lost)
+                /*
+                 * De speler klikte op een mijn -> game over
+                 * Maar niet als show_mines actief is.
+                 */
+                if (!game_lost && !show_mines)
                 {
                     game_lost = true;
-                    losing_coord = clicked;
+                    losing_col = clicked_col;
+                    losing_row = clicked_row;
                     lose_start_time = SDL_GetTicks();
                     // toon alle mijnen
-                    for (int x = 0; x < map_w; ++x)
+                    for (int x = 0; x < map_width; ++x)
                     {
-                        for (int y = 0; y < map_h; ++y)
+                        for (int y = 0; y < map_height; ++y)
                         {
-                            Coord c = coord_make(x, y);
-                            if (MAP_AT(c).is_mine)
-                                cell_set_uncovered(c, true);
+                            if (map[y][x].is_mine)
+                                map[y][x].uncovered = true;
                         }
                     }
                     // uncover ook de mijn waarop geklikt werd
-                    cell_set_uncovered(losing_coord, true);
-                    printf("You clicked a mine at (%d, %d) - you lose.\n", losing_coord.x, losing_coord.y);
+                    map[clicked_row][clicked_col].uncovered = true;
+                    printf("You clicked a mine at (%d, %d) - you lose.\n", clicked_col, clicked_row);
                     changed = true;
                 }
             }
-            else if (MAP_AT(clicked).neighbour_mines == 0)
+            else if (map[clicked_row][clicked_col].neighbour_mines == 0)
             {
                 // Wanneer een nul-cell (zonder aangrenzende mijnen) wordt aangeklikt, worden de naburige cellen ook automatisch ontdekt.
                 // We doen dit d.m.v. een array die als stack fungeert.
-                int size = (int)map_w * (int)map_h;
-                Coord stack[size];
+                int size = (int)map_width * (int)map_height;
+                int stack_y[size], stack_x[size];
                 int i = 0;
                 // We pushen de startcel op de stack.
-                stack[i] = clicked;
+                stack_y[i] = clicked_row;
+                stack_x[i] = clicked_col;
                 i++;
 
                 while (i > 0)
                 {
                     // itereer zolang er cellen in de stack zitten
                     i--;
-                    Coord current = stack[i];
+                    int curr_y = stack_y[i];
+                    int curr_x = stack_x[i];
 
                     // bounds check
-                    if (!coord_valid(current))
+                    if (curr_x < 0 || curr_x >= map_width || curr_y < 0 || curr_y >= map_height)
                         continue;
                     // als de cell al uncovered is, slaan we ze over
-                    if (cell_is_uncovered(current))
+                    if (map[curr_y][curr_x].uncovered)
                         continue;
                     // uncover de cell
-                    cell_set_uncovered(current, true);
+                    map[curr_y][curr_x].uncovered = true;
                     changed = true;
                     // als de cell ook 0 aangrenzende mijnen heeft, pushen we alle niet-onthulde en niet-gevlagde buurcellen
-                    if (MAP_AT(current).neighbour_mines == 0)
+                    if (map[curr_y][curr_x].neighbour_mines == 0)
                     {
                         // we pushen alle 8 buurcellen
                         for (int diag_x = -1; diag_x <= 1; diag_x++)
@@ -468,13 +452,15 @@ void read_input()
                             {
                                 if (diag_x == 0 && diag_y == 0)
                                     continue;
-                                Coord neighbor = coord_make(current.x + diag_x, current.y + diag_y);
-                                if (!coord_valid(neighbor))
+                                int neighbor_x = curr_x + diag_x;
+                                int neighbor_y = curr_y + diag_y;
+                                if (neighbor_x < 0 || neighbor_x >= map_width || neighbor_y < 0 || neighbor_y >= map_height)
                                     continue;
-                                if (!cell_is_uncovered(neighbor) && !cell_is_flagged(neighbor))
+                                if (!map[neighbor_y][neighbor_x].uncovered && !map[neighbor_y][neighbor_x].flagged)
                                 {
                                     // we pushen de buurcell
-                                    stack[i] = neighbor;
+                                    stack_y[i] = neighbor_y;
+                                    stack_x[i] = neighbor_x;
                                     i++;
                                 }
                             }
@@ -485,23 +471,25 @@ void read_input()
             else
             {
                 // uncover een "normale nummer cell"
-                if (!cell_is_uncovered(clicked))
+                if (!map[clicked_row][clicked_col].uncovered)
                 {
-                    cell_set_uncovered(clicked, true);
+                    map[clicked_row][clicked_col].uncovered = true;
                     changed = true;
                 }
             }
 
-            // We checken of de speler alle nummer cellen als uncovered heeft aangeklikt -> win
-            if (!game_won)
+            /*
+             * We checken of de speler alle nummer cellen als uncovered heeft aangeklikt -> win
+             * Maar alleen als show_all niet actief is.
+             */
+            if (!game_won && !show_all)
             {
                 bool all_number_cells_uncovered = true;
-                for (int y = 0; y < map_h && all_number_cells_uncovered; ++y)
+                for (int y = 0; y < map_height && all_number_cells_uncovered; ++y)
                 {
-                    for (int x = 0; x < map_w && all_number_cells_uncovered; ++x)
+                    for (int x = 0; x < map_width && all_number_cells_uncovered; ++x)
                     {
-                        Coord c = coord_make(x, y);
-                        if (!MAP_AT(c).is_mine && !cell_is_uncovered(c))
+                        if (!map[y][x].is_mine && !map[y][x].uncovered)
                         {
                             all_number_cells_uncovered = false;
                         }
@@ -512,13 +500,12 @@ void read_input()
                     printf("All numbers cells uncovered - you win!\n");
                     // Start win-animatie: markeer game_won en initialiseer verwijder-lijst
                     game_won = true;
-                    win_remaining = map_w * map_h;
-                    for (int y = 0; y < map_h; ++y)
+                    win_remaining = map_width * map_height;
+                    for (int y = 0; y < map_height; ++y)
                     {
-                        for (int x = 0; x < map_w; ++x)
+                        for (int x = 0; x < map_width; ++x)
                         {
-                            Coord c = coord_make(x, y);
-                            cell_set_removed(c, false); // nog niet verwijderd tijdens animatie
+                            map[y][x].removed = false; // nog niet verwijderd tijdens animatie
                         }
                     }
                     changed = true;
@@ -539,9 +526,9 @@ void read_input()
 void draw_window()
 {
     // We berekenen de grootte van elke cell op basis van de rij en kolom aantallen en de huidige window grootte.
-    int grid_rows = map_h, grid_cols = map_w;
-    int cell_w = curr_win_w / grid_cols;
-    int cell_h = curr_win_h / grid_rows;
+    int grid_rows = map_height, grid_cols = map_width;
+    int cell_w = curr_window_width / grid_cols;
+    int cell_h = curr_window_height / grid_rows;
 
     // We wissen de renderbuffer met een witte achtergrond.
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -569,27 +556,26 @@ void draw_window()
     {
         for (int col = 0; col < grid_cols; ++col)
         {
-            Coord c = coord_make(col, row);
             SDL_Rect rect = {col * cell_w, row * cell_h, cell_w, cell_h};
             // Tijdens win-animatie verdwijnen verwijderde cellen; anders normaal renderen.
-            if (game_won && cell_is_removed(c))
+            if (game_won && map[row][col].removed)
             {
                 continue; // cell is al verwijderd
             }
 
             // Als de gebruiker heeft gevraagd om mijnen te tonen, dan worden ze hier getekend, zelfs als ze nog niet uncovered zijn.
-            if (show_mines && MAP_AT(c).is_mine)
+            if (show_mines && map[row][col].is_mine)
             {
                 SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
                 continue;
             }
 
-            if (cell_is_uncovered(c))
+            if (map[row][col].uncovered)
             {
-                if (MAP_AT(c).is_mine)
+                if (map[row][col].is_mine)
                 {
                     // Als de speler verloren heeft, laten we de mijn waarop laatst geklikt werd rood knipperen.
-                    if (game_lost && coord_equals(c, losing_coord))
+                    if (game_lost && col == losing_col && row == losing_row)
                     {
                         int time = SDL_GetTicks();
                         int elapsed = time - lose_start_time;
@@ -611,33 +597,23 @@ void draw_window()
                         }
                     }
                     else
-                    {
                         SDL_RenderCopy(renderer, digit_mine_texture, NULL, &rect);
-                    }
                 }
                 else
                 {
-                    int i = MAP_AT(c).neighbour_mines;
+                    int i = map[row][col].neighbour_mines;
                     if (i >= 0 && i <= 8 && digit_textures[i])
-                    {
                         SDL_RenderCopy(renderer, digit_textures[i], NULL, &rect);
-                    }
                     else
-                    {
                         SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
-                    }
                 }
             }
             else
             {
-                if (cell_is_flagged(c) && digit_flagged_texture)
-                {
+                if (map[row][col].flagged && digit_flagged_texture)
                     SDL_RenderCopy(renderer, digit_flagged_texture, NULL, &rect);
-                }
                 else if (digit_covered_texture)
-                {
                     SDL_RenderCopy(renderer, digit_covered_texture, NULL, &rect);
-                }
             }
         }
     }
@@ -652,10 +628,11 @@ void draw_window()
             int tries = 0;
             while (tries < 1000 && win_remaining > 0)
             {
-                Coord rc = coord_make(rand() % map_w, rand() % map_h);
-                if (!cell_is_removed(rc))
+                int rc_y = rand() % map_height;
+                int rc_x = rand() % map_width;
+                if (!map[rc_y][rc_x].removed)
                 {
-                    cell_set_removed(rc, true);
+                    map[rc_y][rc_x].removed = true;
                     win_remaining--;
                     break;
                 }
@@ -665,9 +642,7 @@ void draw_window()
         }
         // Wanneer alle cellen verwijderd zijn, wordt het spel afgesloten.
         if (win_remaining <= 0)
-        {
             should_continue = 0;
-        }
     }
 
     /*
@@ -709,8 +684,8 @@ void initialize_window(const char *title, int window_width, int window_height)
     // Initialiseert de renderer.
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
     // Zet de huidige window afmetingen juist.
-    curr_win_w = window_width;
-    curr_win_h = window_height;
+    curr_window_width = window_width;
+    curr_window_height = window_height;
     // Laat de default-kleur die de renderer in het venster tekent wit zijn.
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 }
@@ -724,9 +699,10 @@ void initialize_textures()
      * geeft SDL_LoadBMP een NULL-pointer terug.
      */
     const char *num_files[9] = {
-        "src/Images/0.bmp", "src/Images/1.bmp", "src/Images/2.bmp",
-        "src/Images/3.bmp", "src/Images/4.bmp", "src/Images/5.bmp",
-        "src/Images/6.bmp", "src/Images/7.bmp", "src/Images/8.bmp"};
+        "Images/0.bmp", "Images/1.bmp", "Images/2.bmp",
+        "Images/3.bmp", "Images/4.bmp", "Images/5.bmp",
+        "Images/6.bmp", "Images/7.bmp", "Images/8.bmp"};
+
     for (int i = 0; i < 9; ++i)
     {
         SDL_Surface *s = SDL_LoadBMP(num_files[i]);
@@ -736,9 +712,7 @@ void initialize_textures()
             SDL_FreeSurface(s);
         }
         else
-        {
             digit_textures[i] = NULL;
-        }
     }
 
     // Laad de andere afbeeldingen apart in.
@@ -797,7 +771,7 @@ void save_game()
     // Blijf proberen tot een geldige bestandsnaam is gevonden.
     while (1)
     {
-        snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_w, map_h, n);
+        snprintf(filenamebuf, sizeof(filenamebuf), "field_%dx%d_%d.txt", map_width, map_height, n);
         // De functie controleert of het bestand al bestaat door het te proberen openen.
         FILE *f = fopen(filenamebuf, "r");
         // Als de bestandsnaam al is ingenomen, sluiten we het bestand en incrementen we de counter n.
@@ -810,7 +784,7 @@ void save_game()
         break;
     }
     // Er wordt geheugen gealloceerd voor twee tijdelijke arrays van char pointers.
-    int cells = (int)map_w * (int)map_h;
+    int cells = (int)map_width * (int)map_height;
     char *f_arr = (char *)malloc(cells); // Deze houdt de status van "flagged" per cell bij.
     char *u_arr = (char *)malloc(cells); // Deze houdt de status van "uncovered" per cell bij.
     if (!f_arr || !u_arr)
@@ -823,14 +797,13 @@ void save_game()
         return;
     }
     // Voor elke cell wordt 1 byte gebruikt in de tijdelijke arrays om aan te duiden of deze "flagged" of "uncovered" is.
-    for (int x = 0; x < map_w; ++x)
+    for (int x = 0; x < map_width; ++x)
     {
-        for (int y = 0; y < map_h; ++y)
+        for (int y = 0; y < map_height; ++y)
         {
-            Coord c = coord_make(x, y);
-            int i = y * map_w + x;
-            f_arr[i] = cell_is_flagged(c) ? 1 : 0;
-            u_arr[i] = cell_is_uncovered(c) ? 1 : 0;
+            int i = y * map_width + x;
+            f_arr[i] = map[y][x].flagged ? 1 : 0;
+            u_arr[i] = map[y][x].uncovered ? 1 : 0;
         }
     }
     // Converteer Cell struct array naar char array voor save_field()
@@ -842,19 +815,23 @@ void save_game()
         free(u_arr);
         return;
     }
-    for (int i = 0; i < cells; ++i)
+    for (int y = 0; y < map_height; ++y)
     {
-        if (map[i].is_mine)
-            map_as_char[i] = 'M';
-        else
-            map_as_char[i] = '0' + map[i].neighbour_mines;
+        for (int x = 0; x < map_width; ++x)
+        {
+            int i = y * map_width + x;
+            if (map[y][x].is_mine)
+                map_as_char[i] = 'M';
+            else
+                map_as_char[i] = '0' + map[y][x].neighbour_mines;
+        }
     }
 
     /*
      * We slaan het speelveld op via de save_field functie.
      * Deze functie zal de map, de flagged array en de uncovered array wegschrijven naar een bestand met naam filenamebuf.
      */
-    if (save_field(filenamebuf, map_w, map_h, map_as_char, f_arr, u_arr) != 0)
+    if (save_field(filenamebuf, map_width, map_height, map_as_char, f_arr, u_arr) != 0)
     {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
     }
@@ -950,18 +927,17 @@ int load_file(const char *filename)
             // sla whitespaces over
             if (lines[i][j] != ' ' && lines[i][j] != '\t')
             {
-                Coord c = coord_make(col, i);
                 char ch = lines[i][j];
                 if (ch == 'M')
                 {
-                    MAP_AT(c).is_mine = true;
-                    MAP_AT(c).neighbour_mines = 0;
+                    map[i][col].is_mine = true;
+                    map[i][col].neighbour_mines = 0;
                     mines++;
                 }
                 else if (ch >= '0' && ch <= '8')
                 {
-                    MAP_AT(c).is_mine = false;
-                    MAP_AT(c).neighbour_mines = ch - '0';
+                    map[i][col].is_mine = false;
+                    map[i][col].neighbour_mines = ch - '0';
                 }
                 col++;
             }
@@ -978,13 +954,12 @@ int load_file(const char *filename)
     }
 
     // We zetten alle uncovered en flagged states standaard op false.
-    for (int x = 0; x < map_w; ++x)
+    for (int x = 0; x < map_width; ++x)
     {
-        for (int y = 0; y < map_h; ++y)
+        for (int y = 0; y < map_height; ++y)
         {
-            Coord c = coord_make(x, y);
-            cell_set_uncovered(c, false);
-            cell_set_flagged(c, false);
+            map[y][x].uncovered = false;
+            map[y][x].flagged = false;
         }
     }
 
@@ -1008,13 +983,12 @@ int load_file(const char *filename)
                 // sla whitespaces over
                 if (lines[sep + 1 + i][j] != ' ' && lines[sep + 1 + i][j] != '\t')
                 {
-                    Coord c = coord_make(col, i);
                     // deze cell is flagged
                     if (lines[sep + 1 + i][j] == 'F')
-                        cell_set_flagged(c, true);
+                        map[i][col].flagged = true;
                     // deze cell is uncovered
                     else if (lines[sep + 1 + i][j] == 'U')
-                        cell_set_uncovered(c, true);
+                        map[i][col].uncovered = true;
                     col++;
                 }
             }

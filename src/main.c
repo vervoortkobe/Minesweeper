@@ -68,19 +68,19 @@ int SDL_main(int argc, char *argv[])
      * We doen dit door de functie determine_img_win_size aan te roepen.
      */
     int img_size = 0;
-    int win_w = WINDOW_WIDTH;
-    int win_h = WINDOW_HEIGHT;
-    if (determine_img_win_size(map_w, map_h, &img_size, &win_w, &win_h) != 0)
+    int window_width = WINDOW_WIDTH;
+    int window_height = WINDOW_HEIGHT;
+    if (determine_img_win_size(map_width, map_height, &img_size, &window_width, &window_height) != 0)
     {
         // Indien deze functie faalt, gebruiken we de standaardwaarden.
-        win_w = WINDOW_WIDTH;
-        win_h = WINDOW_HEIGHT;
+        window_width = WINDOW_WIDTH;
+        window_height = WINDOW_HEIGHT;
     }
     /*
      * Daarna initialiseren we de GUI met de juiste window breedte en hoogte.
      * De game loop wordt dan gestart, waarin we blijven tekenen en input lezen zolang should_continue waar is.
      */
-    initialize_gui(win_w, win_h);
+    initialize_gui(window_width, window_height);
     while (should_continue)
     {
         draw_window();
