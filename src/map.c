@@ -26,12 +26,12 @@ int init_map(int w, int h, int mines)
     map_mines = mines;
     if (map)
         free_map();
-    
+
     // Allocate 2D array: array of pointers to rows
     map = (Cell **)malloc(h * sizeof(Cell *));
     if (!map)
         return -1;
-    
+
     // Allocate each row
     for (int i = 0; i < h; i++)
     {
