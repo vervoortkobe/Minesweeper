@@ -10,7 +10,7 @@ int map_w = 10;
 int map_h = 10;
 int map_mines = 10;
 // Instantieer een standaard speelveld met een pointer naar Cell structs.
-Cell *map = NULL;
+Cell **map = NULL;
 
 /*
  * De waarden van w en h worden gecheckt of deze mogelijk zijn.
@@ -25,25 +25,41 @@ int init_map(int w, int h, int mines)
     map_h = h;
     map_mines = mines;
     if (map)
-        free(map);
-    map = (Cell *)malloc((int)map_w * (int)map_h * sizeof(Cell));
+        free_map();
+    
+    // Allocate 2D array: array of pointers to rows
+    map = (Cell **)malloc(h * sizeof(Cell *));
     if (!map)
-        return -1; // memory allocation niet gelukt -> return -1
+        return -1;
+    
+    // Allocate each row
+    for (int i = 0; i < h; i++)
+    {
+        map[i] = (Cell *)malloc(w * sizeof(Cell));
+        if (!map[i])
+        {
+            // Free previously allocated rows on failure
+            for (int j = 0; j < i; j++)
+                free(map[j]);
+            free(map);
+            map = NULL;
+            return -1;
+        }
+    }
     return 0;
 }
 
-// De aanmgemaakte map wordt opgevuld met Cell structs (zonder mijnen).
+// De aangemaakte map wordt opgevuld met Cell structs (zonder mijnen).
 void create_map()
 {
     if (map == NULL)
         init_map(map_w, map_h, map_mines);
-    for (int x = 0; x < map_w; x++)
+    for (int y = 0; y < map_h; y++)
     {
-        for (int y = 0; y < map_h; y++)
+        for (int x = 0; x < map_w; x++)
         {
-            Coord c = coord_make(x, y);
-            MAP_AT(c).is_mine = false;
-            MAP_AT(c).neighbour_mines = 0;
+            map[y][x].is_mine = false;
+            map[y][x].neighbour_mines = 0;
         }
     }
 }
@@ -55,11 +71,10 @@ void print_map()
     {
         for (int x = 0; x < map_w; x++)
         {
-            Coord c = coord_make(x, y);
-            if (MAP_AT(c).is_mine)
+            if (map[y][x].is_mine)
                 printf("M ");
             else
-                printf("%d ", MAP_AT(c).neighbour_mines);
+                printf("%d ", map[y][x].neighbour_mines);
         }
         printf("\n");
     }
@@ -73,16 +88,15 @@ void fill_map()
      * Voor elke cell die geen mijn is, worden de acht aangrenzende velden gecontroleerd op mijnen.
      * Als er een mijn is gevonden, wordt de counter van de veld met 1 verhoogd.
      */
-    for (int x = 0; x < map_w; x++)
+    for (int y = 0; y < map_h; y++)
     {
-        for (int y = 0; y < map_h; y++)
+        for (int x = 0; x < map_w; x++)
         {
             /*
              * Het aantal mijnen in de omgeving van een cell wordt opgeslagen in het `neighbour_mines` attribute van elke cell.
              * Cellen die zelf een mijn zijn, worden overgeslagen
              */
-            Coord c = coord_make(x, y);
-            if (MAP_AT(c).is_mine)
+            if (map[y][x].is_mine)
                 continue;
             int count = 0;
             for (int ay = -1; ay <= 1; ay++)
@@ -94,13 +108,12 @@ void fill_map()
                     int by = y + ay, bx = x + ax;
                     if (by >= 0 && by < map_h && bx >= 0 && bx < map_w)
                     {
-                        Coord nc = coord_make(bx, by);
-                        if (MAP_AT(nc).is_mine)
+                        if (map[by][bx].is_mine)
                             count++;
                     }
                 }
             }
-            MAP_AT(c).neighbour_mines = count;
+            map[y][x].neighbour_mines = count;
         }
     }
 }
@@ -109,19 +122,19 @@ void fill_map()
  * Na het klikken op een veld, wordt de map aangemaakt en random opgevuld met mijnen.
  * Daarna wordt de fill_map functie aangeroepen om de map verder op te vullen met nummers.
  */
-void add_mines(const Coord *exclude)
+void add_mines(int exclude_x, int exclude_y)
 {
+    srand((unsigned int)time(NULL));
     int placed = 0;
     while (placed < map_mines)
     {
         int x = rand() % map_w;
         int y = rand() % map_h;
-        if (exclude && exclude->x >= 0 && x == exclude->x && y == exclude->y)
+        if (exclude_x >= 0 && x == exclude_x && y == exclude_y)
             continue;
-        Coord c = coord_make(x, y);
-        if (!MAP_AT(c).is_mine)
+        if (!map[y][x].is_mine)
         {
-            MAP_AT(c).is_mine = true;
+            map[y][x].is_mine = true;
             placed++;
         }
     }
@@ -133,6 +146,11 @@ void free_map()
 {
     if (map)
     {
+        for (int i = 0; i < map_h; i++)
+        {
+            if (map[i])
+                free(map[i]);
+        }
         free(map);
         map = NULL;
     }

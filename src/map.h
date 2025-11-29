@@ -12,12 +12,6 @@ void free_map();
 
 typedef struct
 {
-    int x;
-    int y;
-} Coord;
-
-typedef struct
-{
     bool is_mine;
     int neighbour_mines;
     bool uncovered;
@@ -26,11 +20,9 @@ typedef struct
     bool saved_uncovered;
 } Cell;
 
-int coord_index(Coord c);
-void add_mines(const Coord *exclude);
+void add_mines(int exclude_x, int exclude_y);
 void fill_map();
-extern Cell *map;
-#define MAP_AT(coord) (map[coord_index(coord)])
+extern Cell **map;
 void print_map();
 
 #endif // MINESWEEPER_MAP_H
