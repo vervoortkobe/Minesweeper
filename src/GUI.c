@@ -696,6 +696,9 @@ void initialize_textures()
      * Laad de nummer afbeeldingen in.
      * Indien een afbeelding niet kon geladen worden (bv. omdat het pad naar de afbeelding verkeerd is),
      * geeft SDL_LoadBMP een NULL-pointer terug.
+     * Zie SDL2 documentatie:
+     * - https://wiki.libsdl.org/SDL2/SDL_Log voor SDL_Log
+     * - https://wiki.libsdl.org/SDL2/SDL_GetError voor SDL_GetError
      */
     const char *num_files[9] = {
         "Images/0.bmp", "Images/1.bmp", "Images/2.bmp",
@@ -708,16 +711,27 @@ void initialize_textures()
         if (s)
         {
             digit_textures[i] = SDL_CreateTextureFromSurface(renderer, s);
+            if (!digit_textures[i])
+                SDL_Log("Failed to create texture for image %d: %s", i, SDL_GetError());
             SDL_FreeSurface(s);
         }
         else
+        {
+            SDL_Log("Failed to load image %s: %s", num_files[i], SDL_GetError());
             digit_textures[i] = NULL;
+        }
     }
 
     // Laad de andere afbeeldingen apart in.
     SDL_Surface *digit_covered_surface = SDL_LoadBMP("Images/covered.bmp");
+    if (!digit_covered_surface)
+        SDL_Log("Failed to load image covered.bmp: %s", SDL_GetError());
     SDL_Surface *digit_flagged_surface = SDL_LoadBMP("Images/flagged.bmp");
+    if (!digit_flagged_surface)
+        SDL_Log("Failed to load image flagged.bmp: %s", SDL_GetError());
     SDL_Surface *digit_mine_surface = SDL_LoadBMP("Images/mine.bmp");
+    if (!digit_mine_surface)
+        SDL_Log("Failed to load image mine.bmp: %s", SDL_GetError());
 
     digit_covered_texture = SDL_CreateTextureFromSurface(renderer, digit_covered_surface);
     digit_flagged_texture = SDL_CreateTextureFromSurface(renderer, digit_flagged_surface);
