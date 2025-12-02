@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "filehandler.h"
+#include "files.h"
 
 /*
- * Deze functie leest alle lijnen van een bestand uit en slaat deze op in een dynamisch gealloceerde array van  char pointers.
+ * Deze functie leest alle lijnen van een bestand uit en slaat deze op in een dynamisch gealloceerde array van char pointers.
  * De gelezen lijnen worden teruggegeven via de out_lines en het aantal lijnen via out_count.
  * Zie HOC Slides 4_input_output:
  * - dia 16 voor FILE
@@ -77,7 +77,7 @@ int read_lines(const char *filename, char ***out_lines, int *out_count)
     return 0;
 }
 
-// Dealloceer het geheugen gebruikt voor het inlezen van de "lines" uit een bestand.
+// We dealloceren het geheugen gebruikt voor het inlezen van de "lines" uit een bestand.
 void free_lines(char **lines, int count)
 {
     if (!lines)
@@ -101,7 +101,7 @@ int save_field(const char *filename, int w, int h, const char *map, char *flagge
 {
     if (!filename || !map)
         return -1;
-    // We openen het aangemaakt bestand voor writing.
+    // We openen het aangemaakte bestand voor "writing".
     FILE *out = fopen(filename, "w");
     if (!out)
         return -1;

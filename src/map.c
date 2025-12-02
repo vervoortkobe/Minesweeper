@@ -4,16 +4,16 @@
 #include <time.h>
 #include "map.h"
 
-// Instantieer de standaardwaarden van het speelveld.
+// We instantieren de standaardwaarden van het speelveld.
 int map_width = 10;
 int map_height = 10;
 int map_mines = 10;
-// Instantieer een speelveld als 2D array van Cell structs.
+// We instantieren een speelveld als 2D array van Cell structs.
 Cell **map = NULL;
 
 /*
- * De waarden van w en h worden gecheckt of deze mogelijk zijn.
- * Zo ja, worden deze toegekend aan map_width en map_height.
+ * We checken de waarden van w en h of deze mogelijk zijn.
+ * Zo ja, dan worden deze toegekend aan map_width en map_height.
  * We alloceren geheugen voor de standaard map van size map_width * map_height.
  */
 int init_map(int w, int h, int mines)
@@ -26,18 +26,18 @@ int init_map(int w, int h, int mines)
     if (map)
         free_map();
 
-    // Allocate 2D array: array of pointers to rows
+    // We alloceren geheugen voor de maps (2D array van Cell pointers).
     map = (Cell **)malloc(h * sizeof(Cell *));
     if (!map)
         return -1;
 
-    // Allocate each row
+    // We alloceren geheugen voor elke rij in de map.
     for (int i = 0; i < h; i++)
     {
         map[i] = (Cell *)malloc(w * sizeof(Cell));
         if (!map[i])
         {
-            // Free previously allocated rows on failure
+            // We dealloceren eerder gealloceerde Cells bij een eventuele fout.
             for (int j = 0; j < i; j++)
                 free(map[j]);
             free(map);
@@ -84,8 +84,8 @@ void fill_map()
 {
     /*
      * We itereren over alle cellen op het speelveld.
-     * Voor elke cell die geen mijn is, worden de acht aangrenzende velden gecontroleerd op mijnen.
-     * Als er een mijn is gevonden, wordt de counter van de veld met 1 verhoogd.
+     * Voor elke cell die geen mijn is, worden de 8 aangrenzende cellen gecontroleerd op mijnen.
+     * Als er een mijn is gevonden, wordt de counter van de cell met 1 verhoogd.
      */
     for (int y = 0; y < map_height; y++)
     {
@@ -118,7 +118,7 @@ void fill_map()
 }
 
 /*
- * Na het klikken op een veld, wordt de map aangemaakt en random opgevuld met mijnen.
+ * In het begin, na het klikken op de eerste cell, wordt de map aangemaakt en random opgevuld met mijnen.
  * Daarna wordt de fill_map functie aangeroepen om de map verder op te vullen met nummers.
  */
 void add_mines(int exclude_x, int exclude_y)
