@@ -7,34 +7,30 @@
 int main(int argc, char *argv[])
 {
     /*
-     * Args: we instantiëren de args variabele om daarna te kunnen gebruiken in de functie en daarbuiten.
-     * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error (zie functie definitie).
+     * Args: we instantiëren de args variabele om daarna te kunnen gebruiken in de functie en daar buiten.
+     * We parsen de CLI argumenten met de parse_args functie en printen een eventuele error.
      * Zie HOC Slides 4_input_output dia 29 voor perror.
      */
     Args args;
     if (parse_args(argc, argv, &args) != 0)
-    {
         return 1;
-    }
 
     /*
-     * Kijk na of er een bestand werd meegegeven via args (dit wordt meegegeven args.file).
-     * Indien ja, laad de map vanuit het bestand met load_file.
-     * Print een eventuele error.
+     * We kijken na of er een bestand werd meegegeven via args (dit wordt meegegeven args.file).
+     * Zo ja, dan laden we de map vanuit het bestand in met load_file.
      */
     if (args.file)
     {
         if (load_file(args.file) != 0)
         {
-            fprintf(stderr, "Failed to load field from %s\n", args.file);
+            fprintf(stderr, "Failed to load map from %s\n", args.file);
             return 1;
         }
     }
     /*
      * Als er geen bestand wordt meegegeven, wordt er gekeken of er een breedte, hoogte en aantal mijnen worden meegegeven.
      * Ook wordt er gecheckt of deze waarden geldig zijn (breedte en hoogte groter dan 0, aantal mijnen groter of gelijk aan 0).
-     * Indien ja, dan creëren we een map met init_map en create_map.
-     * Anders printen we een error.
+     * Indien van wel, dan creëren we een map met init_map en create_map.
      */
     else if (args.w > 0 && args.h > 0 && args.m > 0)
     {
@@ -64,7 +60,7 @@ int main(int argc, char *argv[])
     }
 
     /*
-     * Initialiseer de dimensies van de window en bepaal een geschikte image size.
+     * We initialiseren de dimensies van de window en bepalen een geschikte image size.
      * We doen dit door de functie determine_img_win_size aan te roepen.
      */
     int img_size = 0;
@@ -86,7 +82,7 @@ int main(int argc, char *argv[])
         draw_window();
         read_input();
     }
-    // Dealloceer al het gebruikte geheugen voor de GUI, de game states en de map.
+    // We dealloceren al het gebruikte geheugen voor de GUI, de game states en de map.
     free_gui();
     free_map();
     return 0;

@@ -5,20 +5,20 @@ OUT_NAME = game
 CFLAGS = `sdl2-config --cflags`
 LIB_FLAGS = `sdl2-config --libs`
 
-ALL_OBJS = $(OUT_DIR)/main.o $(OUT_DIR)/args.o $(OUT_DIR)/filehandler.o $(OUT_DIR)/GUI.o $(OUT_DIR)/map.o
+ALL_OBJS = $(OUT_DIR)/main.o $(OUT_DIR)/args.o $(OUT_DIR)/files.o $(OUT_DIR)/GUI.o $(OUT_DIR)/map.o
 
 all: $(OUT_DIR) $(OUT_NAME)
 
 $(OUT_NAME): $(ALL_OBJS)
 	gcc $(ALL_OBJS) $(LIB_FLAGS) -o $@
 
-$(OUT_DIR)/main.o: $(SRC_DIR)/main.c $(SRC_DIR)/args.h $(SRC_DIR)/map.h $(SRC_DIR)/GUI.h $(SRC_DIR)/filehandler.h
+$(OUT_DIR)/main.o: $(SRC_DIR)/main.c $(SRC_DIR)/args.h $(SRC_DIR)/map.h $(SRC_DIR)/GUI.h $(SRC_DIR)/files.h
 	gcc $(CFLAGS) -c $< -o $@
 
 $(OUT_DIR)/args.o: $(SRC_DIR)/args.c $(SRC_DIR)/args.h
 	gcc $(CFLAGS) -c $< -o $@
 
-$(OUT_DIR)/filehandler.o: $(SRC_DIR)/filehandler.c $(SRC_DIR)/filehandler.h
+$(OUT_DIR)/files.o: $(SRC_DIR)/files.c $(SRC_DIR)/files.h
 	gcc $(CFLAGS) -c $< -o $@
 
 $(OUT_DIR)/GUI.o: $(SRC_DIR)/GUI.c $(SRC_DIR)/GUI.h $(SRC_DIR)/map.h

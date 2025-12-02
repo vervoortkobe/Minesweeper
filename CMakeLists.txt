@@ -18,7 +18,7 @@ add_executable(game
         map.h
         args.c
         args.h
-        filehandler.c
-        filehandler.h
+        files.c
+        files.h
 )
 target_link_libraries(game ${SDL2_LIBRARIES})

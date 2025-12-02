@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "GUI.h"
 #include "map.h"
-#include "filehandler.h"
+#include "files.h"
 
 /*
  * Deze renderer wordt gebruikt om figuren in het venster te tekenen.
@@ -831,13 +831,9 @@ void save_game()
      * Deze functie zal de map, de flagged array en de uncovered array wegschrijven naar een bestand met naam filenamebuf.
      */
     if (save_field(filenamebuf, map_width, map_height, map_as_char, f_arr, u_arr) != 0)
-    {
         fprintf(stderr, "Error saving field to %s\n", filenamebuf);
-    }
     else
-    {
         printf("Saved field to %s\n", filenamebuf);
-    }
     free(map_as_char);
     free(f_arr);
     free(u_arr);
@@ -862,7 +858,7 @@ int load_file(const char *filename)
     if (read_lines(filename, &lines, &count) != 0)
         return -1;
 
-    // Controleer of het bestand minimaal één regel bevat.
+    // We controleren of het bestand minimaal 1 regel bevat.
     if (count == 0)
     {
         free_lines(lines, count);
@@ -870,7 +866,7 @@ int load_file(const char *filename)
     }
 
     /*
-     * Zoek de scheidingsregel (lege regel) tussen het speelveld en de oplossingsmap.
+     * We zoeken de scheidingsregel (lege regel) tussen het speelveld en de oplossingsmap.
      * Als sep == -1, dan is er geen oplossingsmap aanwezig.
      */
     int sep = -1;
@@ -882,7 +878,7 @@ int load_file(const char *filename)
         }
 
     /*
-     * Bepaal het aantal rijen van het speelveld.
+     * We bepalen het aantal rijen van het speelveld.
      * Als er geen scheidingsregel wordt gevonden, dan bevat het bestand enkel het speelveld.
      */
     int map_count = (sep == -1) ? count : sep;
@@ -895,7 +891,7 @@ int load_file(const char *filename)
             cols++;
     }
 
-    // We controleren of er minimaal één kolom is.
+    // We controleren of er minimaal 1 kolom is.
     if (cols <= 0)
     {
         free_lines(lines, count);
@@ -904,7 +900,7 @@ int load_file(const char *filename)
 
     /*
      * We roepen de init_map functie aan om een speelveld/map te initialiseren met de juiste afmetingen.
-     * We geven 0 als het aantal mijnen mee, zodat er nog geen mijnen random geplaatst worden.
+     * We geven 0 mee als het aantal mijnen, zodat er nog geen mijnen random geplaatst worden.
      * De mijnen worden later immers uit het bestand ingelezen.
      */
     if (init_map(cols, map_count, 0) != 0)
@@ -914,7 +910,7 @@ int load_file(const char *filename)
     }
 
     /*
-     * We gaan door elke regel van het speelveld en vullen ons speelveld/onze map in met de juiste waarden.
+     * We gaan door elke regel van het speelveld en vullen ons speelveld in met de juiste waarden.
      * We tellen ook het aantal mijnen tijdens het inlezen.
      */
     int mines = 0;
@@ -973,7 +969,7 @@ int load_file(const char *filename)
         // Als de oplossingsmap meer rijen bevat dan het speelveld, worden de overige rijen genegeerd.
         int use_rows = state_rows < map_count ? state_rows : map_count;
 
-        // We gaan over elke regel van de oplossingsmap en vullen de FLAG/UNC states in.
+        // We itereren elke regel van de oplossingsmap en vullen de FLAG/UNC states in.
         for (int i = 0; i < use_rows; ++i)
         {
             int col = 0;

@@ -7,9 +7,6 @@
  * Deze functie parseert de door de cli meegegeven argumenten.
  * Wanneer een argument als niet juist wordt herkend (of bij een andere fout),
  * zal de functie een foutcode teruggeven en een foutmelding naar stderr schrijven.
- * Bij succes wordt 0 teruggegeven.
- * De mogelijke argumenten zijn:
- * (zie hieronder)
  */
 int parse_args(int argc, char *argv[], Args *out_args)
 {
@@ -44,9 +41,7 @@ int parse_args(int argc, char *argv[], Args *out_args)
                 return 1;
             }
             if (i + 1 < argc)
-            {
                 out_args->file = argv[++i];
-            }
             else
             {
                 fprintf(stderr, "Missing filename after -f\n");
@@ -62,9 +57,7 @@ int parse_args(int argc, char *argv[], Args *out_args)
                 return 1;
             }
             if (i + 1 < argc)
-            {
                 out_args->w = atoi(argv[++i]);
-            }
             else
             {
                 fprintf(stderr, "Missing width after -w\n");
@@ -80,9 +73,7 @@ int parse_args(int argc, char *argv[], Args *out_args)
                 return 1;
             }
             if (i + 1 < argc)
-            {
                 out_args->h = atoi(argv[++i]);
-            }
             else
             {
                 fprintf(stderr, "Missing height after -h\n");
@@ -98,9 +89,7 @@ int parse_args(int argc, char *argv[], Args *out_args)
                 return 1;
             }
             if (i + 1 < argc)
-            {
                 out_args->m = atoi(argv[++i]);
-            }
             else
             {
                 fprintf(stderr, "Missing amount of mines after -m\n");
@@ -121,7 +110,7 @@ int parse_args(int argc, char *argv[], Args *out_args)
         return 1;
     }
 
-    // Check of de waarden van w, h en m geldig zijn, als er geen file wordt meegegeven.
+    // We checken of de waarden van w, h en m geldig zijn, als er geen file wordt meegegeven.
     if (!out_args->file && out_args->w > 0 && out_args->h > 0 && out_args->m > 0)
     {
         int total = (int)out_args->w * (int)out_args->h;
